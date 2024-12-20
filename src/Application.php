@@ -25,9 +25,10 @@ use Symfony\Component\Serializer\{
     Serializer,
     SerializerInterface
 };
+use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Throwable;
 
 class Application
@@ -37,35 +38,27 @@ class Application
 
     private Environment $env;
 
-    private SerializerInterface|NormalizableInterface|DenormalizerInterface|null $serializer;
+    private ?ContainerBuilder $container = null;
 
-    private ?ContainerInterface $container = null;
+    private string $projectDir;
 
-    public function __construct(?SerializerInterface $serializer = null)
+    public function __construct()
     {
-        $this->serializer = $serializer;
-
-        if ($this->serializer === null) {
-            $this->serializer = $this->getSerializer();
-        }
-
         try {
-            $config = $this->serializer->denormalize(
-                Yaml::parseFile(__DIR__ . '/../config.yaml'),
-                Config::class,
-            );
+            $container = $this->getContainer();
+            $loader = new YamlFileLoader($container, new FileLocator($this->getConfigDir()));
+            $loader->load('services.yaml');
 
             $this->env = Environment::fromGlobals();
 
+            $bus = $container->get(ActionBus::class);
+            $router = $container->get(Router::class);
 
-            $bus = new ActionBus();
-            $router = new Router();
-
-            foreach ($config->handlers_dirs as $dir) {
+            foreach ($container->getParameter('handlers_dirs') as $dir) {
                 $this->registerHandlers($dir, ActionHandler::class, $bus, $router);
             }
 
-            $httpDispatcher = new HttpDispatcher();
+            $httpDispatcher = $container->get(HttpDispatcher::class);
             $httpDispatcher->setRouter($router);
             $httpDispatcher->setBus($bus);
 
@@ -110,24 +103,6 @@ class Application
         }
     }
 
-    public function getSerializer(): SerializerInterface|NormalizableInterface|DenormalizerInterface
-    {
-        if (!isset($this->serializer)) {
-            $classMetadataFactory = new ClassMetadataFactory(new AttributeLoader());
-            $normalizers = [
-                new ObjectNormalizer($classMetadataFactory),
-                new ArrayDenormalizer(),
-                new JsonSerializableNormalizer($classMetadataFactory),
-                new GetSetMethodNormalizer($classMetadataFactory),
-                new PropertyNormalizer($classMetadataFactory)
-            ];
-            $encoders = [new YamlEncoder(), new JsonEncoder()];
-            $this->serializer = new Serializer($normalizers, $encoders);
-        }
-
-        return $this->serializer;
-    }
-
     public function run(): void
     {
         foreach ($this->dispatchers as $dispatcher) {
@@ -137,7 +112,7 @@ class Application
         }
     }
 
-    public function getContainer(): ContainerInterface
+    public function getContainer(): ContainerBuilder
     {
         if ($this->container === null) {
             $this->container = new ContainerBuilder();
@@ -146,9 +121,36 @@ class Application
         return $this->container;
     }
 
-    public function setContainer(ContainerInterface $container): void
+    public function setContainer(ContainerBuilder $container): void
     {
         $this->container = $container;
+    }
+
+    public function getProjectDir(): string
+    {
+        if (!isset($this->projectDir)) {
+            $r = new \ReflectionObject($this);
+
+            if (!is_file($dir = $r->getFileName())) {
+                throw new \LogicException(\sprintf('Cannot auto-detect project dir for Application of class "%s".', $r->name));
+            }
+
+            $dir = $rootDir = \dirname($dir);
+            while (!is_file($dir.'/composer.json')) {
+                if ($dir === \dirname($dir)) {
+                    return $this->projectDir = $rootDir;
+                }
+                $dir = \dirname($dir);
+            }
+            $this->projectDir = $dir;
+        }
+
+        return $this->projectDir;
+    }
+
+    public function getConfigDir(): string
+    {
+        return $this->getProjectDir() . '/config';
     }
 
 }

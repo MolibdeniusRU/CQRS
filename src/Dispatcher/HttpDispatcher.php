@@ -12,15 +12,14 @@ use molibdenius\CQRS\Interface\ActionInterface;
 use molibdenius\CQRS\Interface\BusInterface;
 use molibdenius\CQRS\Interface\DispatcherInterface;
 use molibdenius\CQRS\Router;
-use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ServerRequestInterface;
 use ReflectionClass;
-use Spiral\Goridge\RPC\RPC;
 use Spiral\RoadRunner\EnvironmentInterface;
-use Spiral\RoadRunner\Http\PSR7Worker;
+use Spiral\RoadRunner\Http\PSR7WorkerInterface;
 use Spiral\RoadRunner\Jobs\Exception\JobsException;
 use Spiral\RoadRunner\Jobs\Jobs;
+use Spiral\RoadRunner\Jobs\JobsInterface;
 use Spiral\RoadRunner\Jobs\QueueInterface;
 use Spiral\RoadRunner\Worker;
 use Throwable;
@@ -35,10 +34,13 @@ final class HttpDispatcher implements DispatcherInterface
 
     private EnvironmentInterface $env;
 
-    private PSR7Worker $worker;
+    //private PSR7Worker $worker;
 
     /** @var QueueInterface[] */
     private array $queues;
+
+    public function __construct(private PSR7WorkerInterface $worker, private JobsInterface $jobs)
+    {}
 
     public function canServe(EnvironmentInterface $env): bool
     {
@@ -48,12 +50,12 @@ final class HttpDispatcher implements DispatcherInterface
 
     public function serve(): void
     {
-        $factory = new Psr17Factory();
-        $this->worker = new PSR7Worker(Worker::create(), $factory, $factory, $factory);
-        $jobs = new Jobs(RPC::create($this->env->getRPCAddress()));
+        //$factory = new Psr17Factory();
+        //$this->worker = new PSR7Worker(Worker::create(), $factory, $factory, $factory);
+        //$jobs = new Jobs(RPC::create($this->env->getRPCAddress()));
 
-        $this->queues[ActionType::COMMAND->value] = $jobs->connect(ActionType::COMMAND->value);
-        $this->queues[ActionType::QUERY->value] = $jobs->connect(ActionType::QUERY->value);
+        $this->queues[ActionType::COMMAND->value] = $this->jobs->connect(ActionType::COMMAND->value);
+        $this->queues[ActionType::QUERY->value] = $this->jobs->connect(ActionType::QUERY->value);
 
         while (true) {
             try {
