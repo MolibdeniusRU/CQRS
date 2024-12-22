@@ -15,7 +15,7 @@ class CommandHandler extends ActionHandler
             path: $path,
             method: $method,
             payloadType: $payloadType,
-            type: ActionType::COMMAND->value
+            type: ActionType::Command->value
         );
     }
 }

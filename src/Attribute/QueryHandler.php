@@ -15,7 +15,7 @@ class QueryHandler extends ActionHandler
             path: $path,
             method: $method,
             payloadType: $payloadType,
-            type: ActionType::QUERY->value
+            type: ActionType::Query->value
         );
     }
 }

@@ -10,24 +10,8 @@ use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
 use Spiral\RoadRunner\Environment;
-use Symfony\Component\Serializer\{
-    Encoder\JsonEncoder,
-    Encoder\YamlEncoder,
-    Mapping\Factory\ClassMetadataFactory,
-    Mapping\Loader\AttributeLoader,
-    Normalizer\ArrayDenormalizer,
-    Normalizer\DenormalizerInterface,
-    Normalizer\GetSetMethodNormalizer,
-    Normalizer\JsonSerializableNormalizer,
-    Normalizer\NormalizableInterface,
-    Normalizer\ObjectNormalizer,
-    Normalizer\PropertyNormalizer,
-    Serializer,
-    SerializerInterface
-};
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Throwable;
 
@@ -44,10 +28,12 @@ class Application
 
     public function __construct()
     {
+        $class = get_called_class();
         try {
             $container = $this->getContainer();
             $loader = new YamlFileLoader($container, new FileLocator($this->getConfigDir()));
             $loader->load('services.yaml');
+            $container->
 
             $this->env = Environment::fromGlobals();
 
@@ -89,11 +75,9 @@ class Application
             $attributes = (new ReflectionClass($handlerClass))->getAttributes();
             if (count($attributes) > 0) {
                 array_map(
-                    static function (ReflectionAttribute $attributeName) use ($bus, $handlerClass, $router) {
+                    static function (ReflectionAttribute $attributeName) use ($handlerClass, $router) {
                         /** @var ActionHandler $handlerAttribute */
                         $handlerAttribute = $attributeName->newInstance();
-
-                        $bus->registerHandler($handlerAttribute->actionClass, new $handlerClass());
 
                         $router->registerRoute($handlerAttribute->path, $handlerAttribute->method, $handlerClass);
                     },

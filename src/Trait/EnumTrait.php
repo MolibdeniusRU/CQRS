@@ -14,4 +14,9 @@ trait EnumTrait
     {
         return array_column(self::cases(), 'name');
     }
+
+    public static function get(string $name): self
+    {
+        return self::tryFrom($name);
+    }
 }

@@ -7,6 +7,6 @@ use molibdenius\CQRS\Trait\EnumTrait;
 enum ActionType: string
 {
     use EnumTrait;
-    case COMMAND = 'command';
-    case QUERY = 'query';
+    case Command = 'command';
+    case Query = 'query';
 }

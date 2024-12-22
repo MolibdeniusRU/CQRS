@@ -7,7 +7,7 @@ use molibdenius\CQRS\Trait\EnumTrait;
 enum ActionState: string
 {
     use EnumTrait;
-    case NEW = 'new';
-    case COMPLETED = 'completed';
-    case REJECTED = 'rejected';
+    case New = 'new';
+    case Completed = 'completed';
+    case Rejected = 'rejected';
 }

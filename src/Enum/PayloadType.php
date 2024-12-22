@@ -8,9 +8,9 @@ enum PayloadType: string
 {
     use EnumTrait;
 
-    case BODY = "body";
+    case Body = "body";
 
-    case QUERY = "query";
+    case Query = "query";
 
-    case FILE = "file";
+    case File = "file";
 }

@@ -2,47 +2,64 @@
 
 namespace molibdenius\CQRS;
 
+use molibdenius\CQRS\Enum\ActionType;
 use Psr\Http\Message\ServerRequestInterface;
 use RuntimeException;
 
+/**
+ *
+ *
+ */
 class Router
 {
     /**
-     * @var class-string[][]
+     * @var array<string, array<string, array<string, class-string>>>
      */
     private array $routes = [];
 
-    private ServerRequestInterface $request;
+    /**
+     * @var array<class-string, array<string, class-string>>
+     */
+    private array $handlers = [];
 
-    public function registerRoute(string $route, string $method, string $handler): void
+    /**
+     * @param string $route
+     * @param string $method
+     * @param string $payloadType
+     * @param class-string $action
+     * @param class-string $handler
+     * @param ActionType $type
+     * @return void
+     */
+    public function registerRoute(string $route, string $method, string $payloadType, string $action, string $handler, ActionType $type): void
     {
-        $this->routes[$route][$method] = $handler;
+        $this->routes[$route][$method][$payloadType] = $action;
+        $this->handlers[$action][$type->value] = $handler;
     }
 
     /** @return class-string */
-    public function resolveHandler(): string
+    public function resolveAction(ServerRequestInterface $request): string
     {
-        if (!isset($this->request)) {
-            throw new RuntimeException('No request object provided');
-        }
+        $path = $request->getUri()->getPath();
+        $method = $request->getMethod();
 
-        $path = $this->request->getUri()->getPath();
-        $method = $this->request->getMethod();
-
-        if (!isset($this->routes[$path])) {
+        if (!isset($this->routes[$path][$method])) {
             throw new RuntimeException('No route provided');
         }
-        return $this->routes[$path][$method];
+        return array_key_first(array_reverse($this->routes[$path][$method], true));
     }
 
-    public function getRequest(): ServerRequestInterface
+    public function resolveHandler(string $action): string
     {
-        return $this->request;
+        return $this->handlers[$action][$this->getActionType($action)];
     }
 
-    public function setRequest(ServerRequestInterface $request): void
+    public function getActionType(string $action): string
     {
-        $this->request = $request;
+        if (!isset($this->handlers[$action])) {
+            throw new RuntimeException('No action provided');
+        }
+        return array_key_first($this->handlers[$action]);
     }
 
 }

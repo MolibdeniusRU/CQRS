@@ -3,8 +3,15 @@
 namespace molibdenius\CQRS\Interface;
 
 
+
+use ReflectionClass;
+
 interface BusInterface
 {
-    public function registerHandler(string $actionClass, HandlerInterface $handler): void;
+    /**
+     * @param ReflectionClass $handlerReflection
+     * @return void
+     */
+    public function registerHandler(ReflectionClass $handlerReflection): void;
     public function dispatch(ActionInterface $action): mixed;
 }

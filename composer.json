@@ -20,10 +20,12 @@
         "symfony/yaml": "^7.2",
         "symfony/password-hasher": "^7.2",
         "symfony/dependency-injection": "^7.2",
-        "worksolutions/php-collections": "^1.1"
+        "worksolutions/php-collections": "^1.1",
+        "symfony/config": "^7.2",
+        "symfony/var-dumper": "^7.2",
+        "spiral/roadrunner": "^2024.3"
     },
     "require-dev": {
-        "symfony/debug-pack": "^1.0",
         "phpstan/phpstan": "^2.0",
         "spiral/roadrunner-cli": "^2.6"
     },
