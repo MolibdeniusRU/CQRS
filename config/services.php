@@ -2,7 +2,7 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use molibdenius\CQRS\Enum\Service;
+use molibdenius\CQRS\Service;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Spiral\Goridge\RPC\RPC;
 use Spiral\RoadRunner\Environment;

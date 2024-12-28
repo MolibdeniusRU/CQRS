@@ -2,23 +2,32 @@
 
 namespace molibdenius\CQRS;
 
-use molibdenius\CQRS\Attribute\ActionHandler;
-use molibdenius\CQRS\Enum\ActionState;
-use molibdenius\CQRS\Enum\ActionType;
-use molibdenius\CQRS\Interface\ActionInterface;
+use molibdenius\CQRS\Action\Action;
+use molibdenius\CQRS\Action\Enum\ActionState;
+use molibdenius\CQRS\Handler\Attribute\ActionHandler;
+use molibdenius\CQRS\Handler\Handler;
+use molibdenius\CQRS\Router\Router;
 use Psr\Http\Message\ServerRequestInterface;
 use ReflectionAttribute;
 use ReflectionClass;
 use RuntimeException;
-use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use WS\Utils\Collections\ArrayList;
 
-class ActionBus
+final readonly class ActionBus
 {
-    private Container $container;
+    public function __construct(
+        private ContainerInterface $container,
+        private Router             $router,
+    )
+    {
+    }
 
-    private Router $router;
-
+    /**
+     * @param ReflectionClass<Handler> $handlerReflection
+     *
+     * @return void
+     */
     public function registerHandler(ReflectionClass $handlerReflection): void
     {
         $attributes = ArrayList::of($handlerReflection->getAttributes());
@@ -33,28 +42,29 @@ class ActionBus
                     $actionAttribute->payloadType,
                     $actionAttribute->actionClass,
                     $handlerReflection->getName(),
-                    ActionType::get($actionAttribute->type)
+                    $actionAttribute->type,
                 );
             });
     }
 
-    public function dispatch(ActionInterface $action): mixed
+    public function dispatch(Action $action): mixed
     {
         $actionClass = get_class($action);
-        if (null === $handler = $this->container->get($this->router->resolveHandler($actionClass))) {
-            throw new RuntimeException('Not found');
+        $handler = $this->container->get($this->router->resolveHandler($actionClass));
+        if (!$handler instanceof Handler) {
+            throw new RuntimeException("Class {$handler::class} does not implement HandlerInterface");
         }
 
         return $handler->handle($action);
     }
 
-    public function resolveAction(ServerRequestInterface $request): ActionInterface
+    public function resolveAction(ServerRequestInterface $request): Action
     {
         $actionClass = $this->router->resolveAction($request);
-        /** @var ActionInterface $action */
+        /** @var Action $action */
         $action = new $actionClass();
         $action->setType($this->router->getActionType($actionClass));
-        $action->setState(ActionState::New->value);
+        $action->setState(ActionState::New);
 
         return $action;
     }

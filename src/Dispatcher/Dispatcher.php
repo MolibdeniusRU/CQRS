@@ -1,10 +1,10 @@
 <?php
 
-namespace molibdenius\CQRS\Interface;
+namespace molibdenius\CQRS\Dispatcher;
 
 use Spiral\RoadRunner\EnvironmentInterface;
 
-interface DispatcherInterface
+interface Dispatcher
 {
     public function canServe(EnvironmentInterface $env): bool;
 

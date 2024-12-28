@@ -2,14 +2,13 @@
 
 namespace molibdenius\CQRS\Dispatcher;
 
+use Exception;
 use JsonException;
+use molibdenius\CQRS\Action\Action;
+use molibdenius\CQRS\Action\Enum\ActionType;
+use molibdenius\CQRS\Action\Enum\PayloadType;
 use molibdenius\CQRS\ActionBus;
-use molibdenius\CQRS\Enum\ActionType;
-use molibdenius\CQRS\Enum\PayloadType;
-use molibdenius\CQRS\Enum\RoadRunnerMode;
-use molibdenius\CQRS\Interface\ActionInterface;
-use molibdenius\CQRS\Interface\DispatcherInterface;
-use molibdenius\CQRS\Router;
+use molibdenius\CQRS\RoadRunnerMode;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ServerRequestInterface;
 use Spiral\RoadRunner\EnvironmentInterface;
@@ -18,17 +17,28 @@ use Spiral\RoadRunner\Jobs\Exception\JobsException;
 use Spiral\RoadRunner\Jobs\JobsInterface;
 use Spiral\RoadRunner\Jobs\QueueInterface;
 use Throwable;
+use WS\Utils\Collections\HashMap;
 
-/** @property Router $router */
-final class HttpDispatcher implements DispatcherInterface
+final class HttpDispatcher implements Dispatcher
 {
-    private ActionBus $bus;
 
-    /** @var QueueInterface[] */
-    private array $queues;
+    /** @var HashMap<QueueInterface> */
+    private HashMap $queues;
 
-    public function __construct(private readonly PSR7WorkerInterface $worker, private readonly JobsInterface $jobs)
-    {}
+    public function __construct(
+        private readonly PSR7WorkerInterface $worker,
+        private readonly ActionBus           $bus,
+        private readonly JobsInterface       $jobs,
+    )
+    {
+    }
+
+    private function init(): void
+    {
+        $this->queues = new HashMap();
+        $this->queues->put(ActionType::Command, $this->jobs->connect(ActionType::Command->value));
+        $this->queues->put(ActionType::Query, $this->jobs->connect(ActionType::Query->value));
+    }
 
     public function canServe(EnvironmentInterface $env): bool
     {
@@ -37,8 +47,7 @@ final class HttpDispatcher implements DispatcherInterface
 
     public function serve(): void
     {
-        $this->queues[ActionType::Command->value] = $this->jobs->connect(ActionType::Command->value);
-        $this->queues[ActionType::Query->value] = $this->jobs->connect(ActionType::Query->value);
+        $this->init();
 
         while (true) {
             try {
@@ -50,15 +59,15 @@ final class HttpDispatcher implements DispatcherInterface
                 $action = $this->bus->resolveAction($request);
 
                 $payload = $this->getPayload($request, $action->getPayloadType());
+
                 if ($payload !== null) {
                     $action->load($payload);
                 }
 
                 match ($action->getType()) {
-                    ActionType::Command->value => $this->dispatchAsCommand($action),
-                    ActionType::Query->value => $this->dispatchAsQuery($action),
+                    ActionType::Command => $this->dispatchAsCommand($action),
+                    ActionType::Query => $this->dispatchAsQuery($action),
                 };
-
             } catch (Throwable $e) {
                 $this->worker->respond(
                     new Response(
@@ -76,15 +85,14 @@ final class HttpDispatcher implements DispatcherInterface
     /**
      * @throws JobsException
      * @throws JsonException
+     * @throws Exception
      */
-    private function dispatchAsCommand(ActionInterface $action): void
+    private function dispatchAsCommand(Action $action): void
     {
-        $task = $this->queues[$action->getType()]
-            ->create(
-                name: $action->getType(),
-                payload: serialize($action),
-            );
-        $task = $this->queues[$action->getType()]->dispatch($task);
+        $queue = $this->queues->get($action->getType());
+
+        $task = $queue->create($action->getType(), serialize($action));
+        $task = $queue->dispatch($task);
 
         $this->worker->respond(new Response(
             200,
@@ -96,7 +104,7 @@ final class HttpDispatcher implements DispatcherInterface
     /**
      * @throws JsonException
      */
-    private function dispatchAsQuery(ActionInterface $action): void
+    private function dispatchAsQuery(Action $action): void
     {
         $result = $this->bus->dispatch($action);
 
@@ -110,22 +118,12 @@ final class HttpDispatcher implements DispatcherInterface
     /**
      * @return array<string, mixed>|null
      */
-    private function getPayload(ServerRequestInterface $request, ?string $payloadType): array|null
+    private function getPayload(ServerRequestInterface $request, ?PayloadType $payloadType): array|null
     {
         return match ($payloadType) {
-            PayloadType::Query->value =>$request->getQueryParams(),
-            PayloadType::Body->value =>$request->getParsedBody(),
+            PayloadType::Query => $request->getQueryParams(),
+            PayloadType::Body => $request->getParsedBody(),
             default => null,
         };
-    }
-
-    public function getBus(): ActionBus
-    {
-        return $this->bus;
-    }
-
-    public function setBus(ActionBus $bus): void
-    {
-        $this->bus = $bus;
     }
 }

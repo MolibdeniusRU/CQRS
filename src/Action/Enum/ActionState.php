@@ -1,6 +1,6 @@
 <?php
 
-namespace molibdenius\CQRS\Enum;
+namespace molibdenius\CQRS\Action\Enum;
 
 use molibdenius\CQRS\Trait\EnumTrait;
 

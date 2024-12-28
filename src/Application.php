@@ -2,10 +2,11 @@
 
 namespace molibdenius\CQRS;
 
-use molibdenius\CQRS\Attribute\ActionHandler;
+use molibdenius\CQRS\Dispatcher\Dispatcher;
 use molibdenius\CQRS\Dispatcher\HttpDispatcher;
 use molibdenius\CQRS\Dispatcher\QueueDispatcher;
-use molibdenius\CQRS\Interface\DispatcherInterface;
+use molibdenius\CQRS\Handler\Attribute\ActionHandler;
+use molibdenius\CQRS\Router\Router;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
@@ -17,7 +18,7 @@ use Throwable;
 
 class Application
 {
-    /** @var DispatcherInterface[] */
+    /** @var Dispatcher[] */
     private array $dispatchers;
 
     private Environment $env;
@@ -103,6 +104,12 @@ class Application
         }
 
         return $this->container;
+    }
+
+    private function initContainer(): ContainerBuilder
+    {
+        $container = new ContainerBuilder();
+
     }
 
     public function setContainer(ContainerBuilder $container): void
