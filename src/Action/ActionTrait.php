@@ -3,43 +3,46 @@
 namespace molibdenius\CQRS\Action;
 
 
+use molibdenius\CQRS\Action\Enum\ActionState;
+use molibdenius\CQRS\Action\Enum\ActionType;
+use molibdenius\CQRS\Action\Enum\PayloadType;
 use ReflectionClass;
 use ReflectionProperty;
 
 trait ActionTrait
 {
-    private string $state;
+    private ActionState $state;
 
-    private string $type;
+    private ActionType $type;
 
-    private string $payloadType;
+    private PayloadType $payloadType;
 
-    public function getState(): string
+    public function getState(): ActionState
     {
         return $this->state;
     }
 
-    public function setState(string $state): void
+    public function setState(ActionState $state): void
     {
         $this->state = $state;
     }
 
-    public function getType(): string
+    public function getType(): ActionType
     {
         return $this->type;
     }
 
-    public function setType(string $type): void
+    public function setType(ActionType $type): void
     {
         $this->type = $type;
     }
 
-    public function getPayloadType(): string
+    public function getPayloadType(): PayloadType
     {
         return $this->payloadType;
     }
 
-    public function setPayloadType(string $payloadType): void
+    public function setPayloadType(PayloadType $payloadType): void
     {
         $this->payloadType = $payloadType;
     }

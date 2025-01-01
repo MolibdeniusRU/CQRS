@@ -27,8 +27,8 @@ final class HttpDispatcher implements Dispatcher
 
     public function __construct(
         private readonly PSR7WorkerInterface $worker,
-        private readonly ActionBus           $bus,
         private readonly JobsInterface       $jobs,
+        private readonly ActionBus           $bus,
     )
     {
     }
@@ -58,7 +58,7 @@ final class HttpDispatcher implements Dispatcher
 
                 $action = $this->bus->resolveAction($request);
 
-                $payload = $this->getPayload($request, $action->getPayloadType());
+                $payload = $this->extractPayload($request, $action->getPayloadType());
 
                 if ($payload !== null) {
                     $action->load($payload);
@@ -118,7 +118,7 @@ final class HttpDispatcher implements Dispatcher
     /**
      * @return array<string, mixed>|null
      */
-    private function getPayload(ServerRequestInterface $request, ?PayloadType $payloadType): array|null
+    private function extractPayload(ServerRequestInterface $request, ?PayloadType $payloadType): array|null
     {
         return match ($payloadType) {
             PayloadType::Query => $request->getQueryParams(),

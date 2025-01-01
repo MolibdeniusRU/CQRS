@@ -9,7 +9,7 @@ use molibdenius\CQRS\Handler\Handler;
 use Psr\Http\Message\ServerRequestInterface;
 use WS\Utils\Collections\ArrayStrictList;
 
-class Router
+final class Router
 {
     /**
      * @var ArrayStrictList<RouteRegistry>
@@ -31,8 +31,8 @@ class Router
      * @param string $route
      * @param HttpMethod $method
      * @param PayloadType $payloadType
-     * @param class-string $action
-     * @param class-string $handler
+     * @param class-string<Action> $action
+     * @param class-string<Handler> $handler
      * @param ActionType $type
      * @param string|null $name
      *

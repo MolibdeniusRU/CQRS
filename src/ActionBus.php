@@ -13,6 +13,7 @@ use ReflectionClass;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use WS\Utils\Collections\ArrayList;
+use WS\Utils\Collections\Functions\Reorganizers;
 
 final readonly class ActionBus
 {
@@ -32,6 +33,7 @@ final readonly class ActionBus
     {
         $attributes = ArrayList::of($handlerReflection->getAttributes());
         $attributes->stream()
+            ->reorganize(Reorganizers::collapse())
             ->filter(fn(ReflectionAttribute $attribute) => $attribute->newInstance() instanceof ActionHandler)
             ->map(function (ReflectionAttribute $attribute) use ($handlerReflection) {
                 /** @var ActionHandler $actionAttribute */
@@ -52,7 +54,7 @@ final readonly class ActionBus
         $actionClass = get_class($action);
         $handler = $this->container->get($this->router->resolveHandler($actionClass));
         if (!$handler instanceof Handler) {
-            throw new RuntimeException("Class {$handler::class} does not implement HandlerInterface");
+            throw new RuntimeException(sprintf("Class %s does not implement HandlerInterface", $handler::class));
         }
 
         return $handler->handle($action);

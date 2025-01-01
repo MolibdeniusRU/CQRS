@@ -1,6 +1,6 @@
 <?php
 
-namespace molibdenius\CQRS\Trait;
+namespace molibdenius\CQRS;
 
 /** @method static cases() */
 trait EnumTrait

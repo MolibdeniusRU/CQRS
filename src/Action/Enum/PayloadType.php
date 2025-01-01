@@ -2,7 +2,7 @@
 
 namespace molibdenius\CQRS\Action\Enum;
 
-use molibdenius\CQRS\Trait\EnumTrait;
+use molibdenius\CQRS\EnumTrait;
 
 enum PayloadType: string
 {

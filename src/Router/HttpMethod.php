@@ -2,7 +2,7 @@
 
 namespace molibdenius\CQRS\Router;
 
-use molibdenius\CQRS\Trait\EnumTrait;
+use molibdenius\CQRS\EnumTrait;
 
 enum HttpMethod: string
 {

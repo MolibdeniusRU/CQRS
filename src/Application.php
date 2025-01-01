@@ -2,136 +2,106 @@
 
 namespace molibdenius\CQRS;
 
+use Exception;
 use molibdenius\CQRS\Dispatcher\Dispatcher;
 use molibdenius\CQRS\Dispatcher\HttpDispatcher;
 use molibdenius\CQRS\Dispatcher\QueueDispatcher;
-use molibdenius\CQRS\Handler\Attribute\ActionHandler;
-use molibdenius\CQRS\Router\Router;
-use ReflectionAttribute;
 use ReflectionClass;
-use ReflectionException;
 use Spiral\RoadRunner\Environment;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Throwable;
+use function dirname;
 
-class Application
+final class Application
 {
     /** @var Dispatcher[] */
     private array $dispatchers;
 
-    private Environment $env;
-
-    private ?ContainerBuilder $container = null;
-
     private string $projectDir;
 
-    public function __construct()
+    private bool $isInitialized = false;
+
+    public function init(): void
     {
-        $class = get_called_class();
         try {
-            $container = $this->getContainer();
-            $loader = new YamlFileLoader($container, new FileLocator($this->getConfigDir()));
-            $loader->load('services.yaml');
-            $container->
+            $container = $this->initContainer();
+            /** @var ActionBus $bus */
+            $bus = $container->get(Service::ActionBus->value);
 
-            $this->env = Environment::fromGlobals();
-
-            $bus = $container->get(ActionBus::class);
-            $router = $container->get(Router::class);
-
-            foreach ($container->getParameter('handlers_dirs') as $dir) {
-                $this->registerHandlers($dir, ActionHandler::class, $bus, $router);
+            foreach ($container->getDefinitions() as $name => $definition) {
+                if ($this->isHandler($container->getParameter('handlers_dirs'), $name)) {
+                    $bus->registerHandler(new ReflectionClass($definition->getClass()));
+                }
             }
 
-            $httpDispatcher = $container->get(HttpDispatcher::class);
-            $httpDispatcher->setRouter($router);
-            $httpDispatcher->setBus($bus);
+            $httpDispatcher = new HttpDispatcher(
+                $container->get(Service::PSR7Worker->value),
+                $container->get(Service::Jobs->value),
+                $bus
+            );
 
-            $queueDispatcher = new QueueDispatcher();
-            $queueDispatcher->setBus($bus);
+            $queueDispatcher = new QueueDispatcher(
+                $container->get(Service::Consumer->value),
+                $bus
+            );
 
             $this->dispatchers = [
                 $httpDispatcher,
                 $queueDispatcher,
             ];
-
-
         } catch (Throwable $exception) {
             file_put_contents('php://stderr', $exception->getMessage());
         }
 
-    }
-
-    /**
-     * @throws ReflectionException
-     */
-    public function registerHandlers(string $dir, string $attributeClass, ActionBus $bus, Router $router): void
-    {
-        foreach (glob($dir. '/*.php', GLOB_NOSORT) as $handlerFilePath) {
-            preg_match('/src\/(?P<className>[A-Za-z\/]+).php/', $handlerFilePath, $matches);
-            $handlerClass = __NAMESPACE__ . '\\' .  str_replace('/', '\\', $matches['className']);
-
-            $attributes = (new ReflectionClass($handlerClass))->getAttributes();
-            if (count($attributes) > 0) {
-                array_map(
-                    static function (ReflectionAttribute $attributeName) use ($handlerClass, $router) {
-                        /** @var ActionHandler $handlerAttribute */
-                        $handlerAttribute = $attributeName->newInstance();
-
-                        $router->registerRoute($handlerAttribute->path, $handlerAttribute->method, $handlerClass);
-                    },
-                    $attributes,
-                );
-            }
-        }
+        $this->isInitialized = true;
     }
 
     public function run(): void
     {
+        if (!$this->isInitialized) {
+            $this->init();
+        }
+
         foreach ($this->dispatchers as $dispatcher) {
-            if ($dispatcher->canServe($this->env)) {
+            if ($dispatcher->canServe(Environment::fromGlobals())) {
                 $dispatcher->serve();
             }
         }
     }
 
-    public function getContainer(): ContainerBuilder
-    {
-        if ($this->container === null) {
-            $this->container = new ContainerBuilder();
-        }
-
-        return $this->container;
-    }
-
+    /**
+     * @throws Exception
+     */
     private function initContainer(): ContainerBuilder
     {
         $container = new ContainerBuilder();
 
+        $phpLoader = new PhpFileLoader($container, new FileLocator(__DIR__));
+        $phpLoader->load($this->getAppConfigDir() . '/services.php');
+
+        $yamlLoader = new YamlFileLoader($container, new FileLocator(__DIR__));
+        $yamlLoader->load($this->getProjectConfigDir() . '/services.yaml');
+
+        return $container;
     }
 
-    public function setContainer(ContainerBuilder $container): void
+    private function getApplicationDir(): string
     {
-        $this->container = $container;
+        return dirname(__DIR__);
     }
 
     public function getProjectDir(): string
     {
         if (!isset($this->projectDir)) {
-            $r = new \ReflectionObject($this);
-
-            if (!is_file($dir = $r->getFileName())) {
-                throw new \LogicException(\sprintf('Cannot auto-detect project dir for Application of class "%s".', $r->name));
-            }
-
-            $dir = $rootDir = \dirname($dir);
+            $dir = $rootDir = getcwd();
             while (!is_file($dir.'/composer.json')) {
-                if ($dir === \dirname($dir)) {
+                if ($dir === dirname($dir)) {
                     return $this->projectDir = $rootDir;
                 }
-                $dir = \dirname($dir);
+                $dir = dirname($dir);
             }
             $this->projectDir = $dir;
         }
@@ -139,10 +109,29 @@ class Application
         return $this->projectDir;
     }
 
-    public function getConfigDir(): string
+    public function getProjectConfigDir(): string
     {
         return $this->getProjectDir() . '/config';
     }
 
+    private function getAppConfigDir(): string
+    {
+        return $this->getApplicationDir() . '/config';
+    }
+
+    /**
+     * @param array<string> $handlersDirs
+     * @param string $name
+     * @return bool
+     */
+    private function isHandler(array $handlersDirs, string $name): bool
+    {
+        foreach ($handlersDirs as $dir) {
+            if (str_contains($name, $dir)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
