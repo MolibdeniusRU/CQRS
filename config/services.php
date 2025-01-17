@@ -99,7 +99,7 @@ return static function (ContainerConfigurator $container) {
         },
 
         static function (ServicesConfigurator $services) {
-            $projectDir = getProjectDir();
+            $projectDir = get_project_dir();
 
             $dotenv = new Dotenv();
             $dotenv->loadEnv($projectDir .'/.env');

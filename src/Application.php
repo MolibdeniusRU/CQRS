@@ -2,6 +2,8 @@
 
 namespace molibdenius\CQRS;
 
+require_once __DIR__ . '/../helpers/functions.php';
+
 use Exception;
 use molibdenius\CQRS\Dispatcher\Dispatcher;
 use molibdenius\CQRS\Dispatcher\HttpDispatcher;
@@ -13,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Throwable;
-use function dirname;
+
 
 final class Application
 {
@@ -28,6 +30,7 @@ final class Application
     {
         try {
             $container = $this->initContainer();
+
             /** @var ActionBus $bus */
             $bus = $container->get(Service::ActionBus->value);
 
@@ -53,7 +56,7 @@ final class Application
                 $queueDispatcher,
             ];
         } catch (Throwable $exception) {
-            file_put_contents('php://stderr', $exception->getMessage());
+            file_put_contents('php://stderr', $exception->getMessage() . PHP_EOL . $exception->getTraceAsString());
         }
 
         $this->isInitialized = true;
@@ -96,14 +99,7 @@ final class Application
     public function getProjectDir(): string
     {
         if (!isset($this->projectDir)) {
-            $dir = $rootDir = getcwd();
-            while (!is_file($dir.'/composer.json')) {
-                if ($dir === dirname($dir)) {
-                    return $this->projectDir = $rootDir;
-                }
-                $dir = dirname($dir);
-            }
-            $this->projectDir = $dir;
+            $this->projectDir = get_project_dir();
         }
 
         return $this->projectDir;
