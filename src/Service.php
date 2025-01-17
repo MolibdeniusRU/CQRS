@@ -23,4 +23,11 @@ enum Service: string
     case ServiceContainer = "service_container";
 
     case Consumer = "consumer";
+
+    case EntityManager = "entity_manager";
+
+    case EmConfiguration = "em_configuration";
+
+    case EmConnection = "em_connection";
+
 }
