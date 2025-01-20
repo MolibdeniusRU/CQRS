@@ -2,6 +2,8 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+require_once __DIR__ . '/../helpers/functions.php';
+
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
@@ -22,20 +24,7 @@ use Spiral\RoadRunner\Worker;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
 use Symfony\Component\Dotenv\Dotenv;
-
-require_once __DIR__ . '/../helpers/functions.php';
-
-const DEFAULT_SCHEME_MAP = [
-    'db2'        => 'ibm_db2',
-    'mssql'      => 'pdo_sqlsrv',
-    'mysql'      => 'pdo_mysql',
-    'mysql2'     => 'pdo_mysql', // Amazon RDS, for some weird reason
-    'postgres'   => 'pdo_pgsql',
-    'postgresql' => 'pdo_pgsql',
-    'pgsql'      => 'pdo_pgsql',
-    'sqlite'     => 'pdo_sqlite',
-    'sqlite3'    => 'pdo_sqlite',
-];
+use function get_project_dir;
 
 
 return static function (ContainerConfigurator $container) {
@@ -102,11 +91,12 @@ return static function (ContainerConfigurator $container) {
             $projectDir = get_project_dir();
 
             $dotenv = new Dotenv();
-            $dotenv->loadEnv($projectDir .'/.env');
+            $dotenv->bootEnv($projectDir .'/.env');
 
             $databaseUrl = $_ENV['DATABASE_URL'];
             $applicationMode = $_ENV['APPLICATION_MODE'];
-            $dnsParser = new DsnParser(DEFAULT_SCHEME_MAP);
+
+            $dnsParser = new DsnParser(require __DIR__ . '/pdo_map.php');
 
             if ($applicationMode === ApplicationMode::Development->value) {
                 $metadataCache = $queryCache = ArrayAdapter::class;

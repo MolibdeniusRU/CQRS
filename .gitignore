@@ -3,3 +3,4 @@
 ./.jetclient
 ./.idea
 .pid
+/composer.lock

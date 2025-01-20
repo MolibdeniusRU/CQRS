@@ -35,5 +35,8 @@
         "phpstan/phpstan": "^2.0",
         "spiral/roadrunner-cli": "^2.6"
     },
+    "bin": [
+        "bin/migrations"
+    ],
     "type": "library"
 }
