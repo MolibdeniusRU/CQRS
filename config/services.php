@@ -32,37 +32,47 @@ return static function (ContainerConfigurator $container) {
 
     $setUp = [
         static function (ServicesConfigurator $services) {
-            return $services
-                ->set(Service::Environment->value, Environment::class)
+            $services
+                ->set(Environment::class)
                 ->factory([Environment::class, 'fromGlobals'])
                 ->public();
+
+            return $services->alias(Service::Environment->value, Environment::class);
         },
         static function (ServicesConfigurator $services) {
-            return $services
-                ->set(Service::RPC->value, RPC::class)
+            $services
+                ->set(RPC::class)
                 ->factory([RPC::class, 'create'])
                 ->arg('$connection', expr("service('" . Service::Environment->value . "').getRPCAddress()"))
                 ->public();
+
+            return $services->alias(Service::RPC->value, RPC::class);
         },
         static function (ServicesConfigurator $services) {
-            return $services
-                ->set(Service::Jobs->value, Jobs::class)
+            $services
+                ->set(Jobs::class)
                 ->arg('$rpc', service(Service::RPC->value))
                 ->public();
+
+            return $services->alias(Service::Jobs->value, Jobs::class);
         },
         static function (ServicesConfigurator $services) {
-            return $services->set(Service::PSR17Factory->value, Psr17Factory::class)->public();
+            $services->set(Psr17Factory::class)->public();
+
+            return $services->alias(Service::PSR17Factory->value, Psr17Factory::class);
         },
         static function (ServicesConfigurator $services) {
-            return $services
-                ->set(Service::RRWorker->value, Worker::class)
+            $services
+                ->set(Worker::class)
                 ->factory([Worker::class, 'createFromEnvironment'])
                 ->arg('$env', service(Service::Environment->value))
                 ->public();
+
+            return $services->alias(Service::RRWorker->value, Worker::class);
         },
         static function (ServicesConfigurator $services) {
-            return $services
-                ->set(Service::PSR7Worker->value, PSR7Worker::class)
+            $services
+                ->set(PSR7Worker::class)
                 ->args([
                     service(Service::RRWorker->value),
                     service(Service::PSR17Factory->value),
@@ -70,21 +80,28 @@ return static function (ContainerConfigurator $container) {
                     service(Service::PSR17Factory->value),
                 ])
                 ->public();
+
+            return $services->alias(Service::PSR7Worker->value, PSR7Worker::class);
         },
         static function (ServicesConfigurator $services) {
-            return $services->set(Service::Consumer->value, Consumer::class)->public();
+            $services->set(Consumer::class)->public();
+
+            return $services->alias(Service::Consumer->value, Consumer::class);
         },
         static function (ServicesConfigurator $services) {
-            return $services
-                ->set(Service::ActionBus->value, ActionBus::class)
+            $services
+                ->set(ActionBus::class)
                 ->args([
                     service(Service::ServiceContainer->value),
                     service(Service::Router->value)
                 ])
                 ->public();
+
+            return $services->alias(Service::ActionBus->value, ActionBus::class);
         },
         static function (ServicesConfigurator $services) {
-            return $services->set(Service::Router->value, Router::class);
+            $services->set(Router::class);
+            return $services->alias(Service::Router->value, Router::class);
         },
 
         static function (ServicesConfigurator $services) {
@@ -126,10 +143,12 @@ return static function (ContainerConfigurator $container) {
                 ->arg('$params', $dnsParser->parse($databaseUrl))
                 ->arg('$config', service(Service::EmConfiguration->value));
 
-            return $services
-                ->set(Service::EntityManager->value, EntityManager::class)
+            $services
+                ->set(EntityManager::class)
                 ->args([service(Service::EmConnection->value), service(Service::EmConfiguration->value)])
                 ->public();
+
+            return $services->alias(Service::EntityManager->value, EntityManager::class);
 
         }
     ];
