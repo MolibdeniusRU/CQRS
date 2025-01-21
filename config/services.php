@@ -43,32 +43,29 @@ return static function (ContainerConfigurator $container) {
             $services
                 ->set(RPC::class)
                 ->factory([RPC::class, 'create'])
-                ->arg('$connection', expr("service('" . Service::Environment->value . "').getRPCAddress()"))
-                ->public();
+                ->arg('$connection', expr("service('" . Service::Environment->value . "').getRPCAddress()"));
 
-            return $services->alias(Service::RPC->value, RPC::class);
+            return $services->alias(Service::RPC->value, RPC::class)->public();
         },
         static function (ServicesConfigurator $services) {
             $services
                 ->set(Jobs::class)
-                ->arg('$rpc', service(Service::RPC->value))
-                ->public();
+                ->arg('$rpc', service(Service::RPC->value));
 
-            return $services->alias(Service::Jobs->value, Jobs::class);
+            return $services->alias(Service::Jobs->value, Jobs::class)->public();
         },
         static function (ServicesConfigurator $services) {
-            $services->set(Psr17Factory::class)->public();
+            $services->set(Psr17Factory::class);
 
-            return $services->alias(Service::PSR17Factory->value, Psr17Factory::class);
+            return $services->alias(Service::PSR17Factory->value, Psr17Factory::class)->public();
         },
         static function (ServicesConfigurator $services) {
             $services
                 ->set(Worker::class)
                 ->factory([Worker::class, 'createFromEnvironment'])
-                ->arg('$env', service(Service::Environment->value))
-                ->public();
+                ->arg('$env', service(Service::Environment->value));
 
-            return $services->alias(Service::RRWorker->value, Worker::class);
+            return $services->alias(Service::RRWorker->value, Worker::class)->public();
         },
         static function (ServicesConfigurator $services) {
             $services
@@ -78,15 +75,14 @@ return static function (ContainerConfigurator $container) {
                     service(Service::PSR17Factory->value),
                     service(Service::PSR17Factory->value),
                     service(Service::PSR17Factory->value),
-                ])
-                ->public();
+                ]);
 
-            return $services->alias(Service::PSR7Worker->value, PSR7Worker::class);
+            return $services->alias(Service::PSR7Worker->value, PSR7Worker::class)->public();
         },
         static function (ServicesConfigurator $services) {
-            $services->set(Consumer::class)->public();
+            $services->set(Consumer::class);
 
-            return $services->alias(Service::Consumer->value, Consumer::class);
+            return $services->alias(Service::Consumer->value, Consumer::class)->public();
         },
         static function (ServicesConfigurator $services) {
             $services
@@ -94,10 +90,9 @@ return static function (ContainerConfigurator $container) {
                 ->args([
                     service(Service::ServiceContainer->value),
                     service(Service::Router->value)
-                ])
-                ->public();
+                ]);
 
-            return $services->alias(Service::ActionBus->value, ActionBus::class);
+            return $services->alias(Service::ActionBus->value, ActionBus::class)->public();
         },
         static function (ServicesConfigurator $services) {
             $services->set(Router::class);
@@ -145,10 +140,9 @@ return static function (ContainerConfigurator $container) {
 
             $services
                 ->set(EntityManager::class)
-                ->args([service(Service::EmConnection->value), service(Service::EmConfiguration->value)])
-                ->public();
+                ->args([service(Service::EmConnection->value), service(Service::EmConfiguration->value)]);
 
-            return $services->alias(Service::EntityManager->value, EntityManager::class);
+            return $services->alias(Service::EntityManager->value, EntityManager::class)->public();
 
         }
     ];
