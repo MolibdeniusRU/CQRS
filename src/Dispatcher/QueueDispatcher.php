@@ -11,10 +11,11 @@ final class QueueDispatcher implements Dispatcher
 {
     public function __construct(
         private readonly ConsumerInterface $consumer,
-        private readonly ActionBus $bus,
+        private readonly ActionBus         $bus,
     )
     {
     }
+
     public function canServe(EnvironmentInterface $env): bool
     {
         return $env->getMode() === RoadRunnerMode::Jobs->value;

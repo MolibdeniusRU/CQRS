@@ -41,7 +41,7 @@ return static function (ContainerConfigurator $container) {
             return $services
                 ->set(Service::RPC->value, RPC::class)
                 ->factory([RPC::class, 'create'])
-                ->arg('$connection', expr("service('". Service::Environment->value ."').getRPCAddress()"))
+                ->arg('$connection', expr("service('" . Service::Environment->value . "').getRPCAddress()"))
                 ->public();
         },
         static function (ServicesConfigurator $services) {
@@ -91,7 +91,7 @@ return static function (ContainerConfigurator $container) {
             $projectDir = get_project_dir();
 
             $dotenv = new Dotenv();
-            $dotenv->bootEnv($projectDir .'/.env');
+            $dotenv->bootEnv($projectDir . '/.env');
 
             $databaseUrl = $_ENV['DATABASE_URL'];
             $applicationMode = $_ENV['APPLICATION_MODE'];

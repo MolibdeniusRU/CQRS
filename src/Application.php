@@ -30,6 +30,7 @@ final class Application
     {
         try {
             $container = $this->initContainer();
+            $container->compile();
 
             /** @var ActionBus $bus */
             $bus = $container->get(Service::ActionBus->value);

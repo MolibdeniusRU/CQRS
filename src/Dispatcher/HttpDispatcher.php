@@ -58,13 +58,13 @@ final class HttpDispatcher implements Dispatcher
 
                 $action = $this->bus->resolveAction($request);
 
-                $payload = $this->extractPayload($request, $action->getPayloadType());
+                $payload = $this->extractPayload($request, $action->getActionPayloadType());
 
                 if ($payload !== null) {
                     $action->load($payload);
                 }
 
-                match ($action->getType()) {
+                match ($action->getActionType()) {
                     ActionType::Command => $this->dispatchAsCommand($action),
                     ActionType::Query => $this->dispatchAsQuery($action),
                 };
@@ -89,9 +89,9 @@ final class HttpDispatcher implements Dispatcher
      */
     private function dispatchAsCommand(Action $action): void
     {
-        $queue = $this->queues->get($action->getType());
+        $queue = $this->queues->get($action->getActionType());
 
-        $task = $queue->create($action->getType(), serialize($action));
+        $task = $queue->create($action->getActionType()->value, serialize($action));
         $task = $queue->dispatch($task);
 
         $this->worker->respond(new Response(
@@ -117,12 +117,19 @@ final class HttpDispatcher implements Dispatcher
 
     /**
      * @return array<string, mixed>|null
+     * @throws JsonException
      */
     private function extractPayload(ServerRequestInterface $request, ?PayloadType $payloadType): array|null
     {
         return match ($payloadType) {
             PayloadType::Query => $request->getQueryParams(),
-            PayloadType::Body => $request->getParsedBody(),
+            PayloadType::Body => $request->getParsedBody() ??
+                json_decode(
+                    json: $request->getBody()->getContents(),
+                    associative: true,
+                    depth: 512,
+                    flags: JSON_THROW_ON_ERROR
+                ),
             default => null,
         };
     }

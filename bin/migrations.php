@@ -2,6 +2,9 @@
 
 namespace Migrations;
 
+require_once __DIR__ . '/../helpers/functions.php';
+require get_project_dir() . '/vendor/autoload.php';
+
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Tools\DsnParser;
 use Doctrine\Migrations\Configuration\EntityManager\ExistingEntityManager;
@@ -17,10 +20,10 @@ use Symfony\Component\Dotenv\Dotenv;
 $projectDir = get_project_dir();
 
 $dotenv = new Dotenv();
-$dotenv->bootEnv($projectDir .'/.env');
-$dnsParser = new DsnParser(require __DIR__ . '/../config/pdo_map.php');
+$dotenv->bootEnv($projectDir . '/.env');
+$dnsParser = new DsnParser(require $projectDir . '/config/pdo_map.php');
 
-$paths = [$projectDir.'/src/Entity'];
+$paths = [$projectDir . '/src/Entity'];
 
 $ORMConfig = ORMSetup::createAttributeMetadataConfiguration(
     paths: $paths,

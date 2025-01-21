@@ -8,12 +8,12 @@ use molibdenius\CQRS\Action\Enum\PayloadType;
 use molibdenius\CQRS\Router\HttpMethod;
 
 #[Attribute]
-class QueryHandler extends ActionHandler
+class AsQueryHandler extends ActionHandler
 {
     public function __construct(string $queryClass, string $path, HttpMethod $method, PayloadType $payloadType)
     {
         parent::__construct(
-            actionClass:  $queryClass,
+            actionClass: $queryClass,
             path: $path,
             method: $method,
             payloadType: $payloadType,

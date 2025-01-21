@@ -12,6 +12,7 @@ use ReflectionAttribute;
 use ReflectionClass;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Throwable;
 use WS\Utils\Collections\ArrayList;
 use WS\Utils\Collections\Functions\Reorganizers;
 
@@ -51,13 +52,20 @@ final readonly class ActionBus
 
     public function dispatch(Action $action): mixed
     {
-        $actionClass = get_class($action);
-        $handler = $this->container->get($this->router->resolveHandler($actionClass));
-        if (!$handler instanceof Handler) {
-            throw new RuntimeException(sprintf("Class %s does not implement HandlerInterface", $handler::class));
+        try {
+            $actionClass = get_class($action);
+            $handler = $this->container->get($this->router->resolveHandler($actionClass));
+            if (!$handler instanceof Handler) {
+                throw new RuntimeException(sprintf("Class %s does not implement HandlerInterface", $handler::class));
+            }
+
+            $result = $handler->handle($action);
+        } catch (Throwable $exception) {
+            file_put_contents('php://stderr', $exception->getMessage() . PHP_EOL . $exception->getTraceAsString());
+            $result = null;
         }
 
-        return $handler->handle($action);
+        return $result;
     }
 
     public function resolveAction(ServerRequestInterface $request): Action
@@ -65,8 +73,9 @@ final readonly class ActionBus
         $actionClass = $this->router->resolveAction($request);
         /** @var Action $action */
         $action = new $actionClass();
-        $action->setType($this->router->getActionType($actionClass));
-        $action->setState(ActionState::New);
+        $action->setActionType($this->router->getActionType($actionClass));
+        $action->setActionState(ActionState::New);
+        $action->setActionPayloadType($this->router->getActionPayloadType($actionClass));
 
         return $action;
     }

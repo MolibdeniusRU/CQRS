@@ -8,7 +8,7 @@ use molibdenius\CQRS\Action\Enum\PayloadType;
 use molibdenius\CQRS\Router\HttpMethod;
 
 #[Attribute]
-class CommandHandler extends ActionHandler
+class AsCommandHandler extends ActionHandler
 {
     public function __construct(string $commandClass, string $path, HttpMethod $method, PayloadType $payloadType)
     {

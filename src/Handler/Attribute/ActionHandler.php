@@ -19,11 +19,11 @@ class ActionHandler
      * @param ActionType $type
      */
     public function __construct(
-        public string $actionClass,
-        public string $path,
-        public HttpMethod $method,
+        public string      $actionClass,
+        public string      $path,
+        public HttpMethod  $method,
         public PayloadType $payloadType,
-        public ActionType $type
+        public ActionType  $type
     )
     {
     }

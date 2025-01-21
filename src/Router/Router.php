@@ -39,12 +39,12 @@ final class Router
      * @return void
      */
     public function registerRoute(
-        string $route,
-        HttpMethod $method,
+        string      $route,
+        HttpMethod  $method,
         PayloadType $payloadType,
-        string $action,
-        string $handler,
-        ActionType $type,
+        string      $action,
+        string      $handler,
+        ActionType  $type,
         string|null $name = null
     ): void
     {
@@ -74,8 +74,8 @@ final class Router
     {
         return $this->handlers->stream()
             ->findFirst(function (HandlerRegistry $handler) use ($action) {
-               return $handler->action === $action;
-            });
+                return $handler->action === $action;
+            })->handler;
     }
 
     /**
@@ -89,6 +89,14 @@ final class Router
             ->findFirst(function (HandlerRegistry $handler) use ($action) {
                 return $handler->action === $action;
             })->type;
+    }
+
+    public function getActionPayloadType(string $action): PayloadType
+    {
+        return $this->routes->stream()
+            ->findFirst(function (RouteRegistry $route) use ($action) {
+                return $route->action === $action;
+            })->payloadType;
     }
 
 }
