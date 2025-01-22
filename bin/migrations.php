@@ -21,7 +21,7 @@ $projectDir = get_project_dir();
 
 $dotenv = new Dotenv();
 $dotenv->bootEnv($projectDir . '/.env');
-$dnsParser = new DsnParser(require $projectDir . '/config/pdo_map.php');
+$dnsParser = new DsnParser(require __DIR__ . '/../config/pdo_map.php');
 
 $paths = [$projectDir . '/src/Entity'];
 
