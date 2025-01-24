@@ -1,47 +1,50 @@
 <?php
 
-namespace molibdenius\CQRS\Trait;
+namespace molibdenius\CQRS\Action;
 
 
+use molibdenius\CQRS\Action\Enum\ActionState;
+use molibdenius\CQRS\Action\Enum\ActionType;
+use molibdenius\CQRS\Action\Enum\PayloadType;
 use ReflectionClass;
 use ReflectionProperty;
 
-trait ActionTrait
+trait Actionable
 {
-    private string $state;
+    private ActionState $actionState;
 
-    private string $type;
+    private ActionType $actionType;
 
-    private string $payloadType;
+    private PayloadType $actionPayloadType;
 
-    public function getState(): string
+    public function getActionState(): ActionState
     {
-        return $this->state;
+        return $this->actionState;
     }
 
-    public function setState(string $state): void
+    public function setActionState(ActionState $actionState): void
     {
-        $this->state = $state;
+        $this->actionState = $actionState;
     }
 
-    public function getType(): string
+    public function getActionType(): ActionType
     {
-        return $this->type;
+        return $this->actionType;
     }
 
-    public function setType(string $type): void
+    public function setActionType(ActionType $actionType): void
     {
-        $this->type = $type;
+        $this->actionType = $actionType;
     }
 
-    public function getPayloadType(): string
+    public function getActionPayloadType(): PayloadType
     {
-        return $this->payloadType;
+        return $this->actionPayloadType;
     }
 
-    public function setPayloadType(string $payloadType): void
+    public function setActionPayloadType(PayloadType $actionPayloadType): void
     {
-        $this->payloadType = $payloadType;
+        $this->actionPayloadType = $actionPayloadType;
     }
 
     public function load(array $attributes): void

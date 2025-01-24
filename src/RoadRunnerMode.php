@@ -1,9 +1,7 @@
 <?php
 
-namespace molibdenius\CQRS\Enum;
+namespace molibdenius\CQRS;
 
-
-use molibdenius\CQRS\Trait\EnumTrait;
 
 enum RoadRunnerMode: string
 {

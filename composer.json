@@ -20,12 +20,23 @@
         "symfony/yaml": "^7.2",
         "symfony/password-hasher": "^7.2",
         "symfony/dependency-injection": "^7.2",
-        "worksolutions/php-collections": "^1.1"
+        "worksolutions/php-collections": "^1.1",
+        "symfony/config": "^7.2",
+        "symfony/var-dumper": "^7.2",
+        "spiral/roadrunner": "^2024.3",
+        "doctrine/dbal": "^4.2",
+        "doctrine/orm": "^3.3",
+        "doctrine/migrations": "^3.8",
+        "symfony/cache": "^7.2",
+        "symfony/expression-language": "^7.2",
+        "symfony/dotenv": "^7.2"
     },
     "require-dev": {
-        "symfony/debug-pack": "^1.0",
         "phpstan/phpstan": "^2.0",
         "spiral/roadrunner-cli": "^2.6"
     },
+    "bin": [
+        "bin/migrations"
+    ],
     "type": "library"
 }

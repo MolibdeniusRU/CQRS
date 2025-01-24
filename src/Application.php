@@ -2,154 +2,133 @@
 
 namespace molibdenius\CQRS;
 
-use molibdenius\CQRS\Attribute\ActionHandler;
+require_once __DIR__ . '/../helpers/functions.php';
+
+use Exception;
+use molibdenius\CQRS\Dispatcher\Dispatcher;
 use molibdenius\CQRS\Dispatcher\HttpDispatcher;
 use molibdenius\CQRS\Dispatcher\QueueDispatcher;
-use molibdenius\CQRS\Interface\DispatcherInterface;
-use ReflectionAttribute;
 use ReflectionClass;
-use ReflectionException;
 use Spiral\RoadRunner\Environment;
-use Symfony\Component\Serializer\{
-    Encoder\JsonEncoder,
-    Encoder\YamlEncoder,
-    Mapping\Factory\ClassMetadataFactory,
-    Mapping\Loader\AttributeLoader,
-    Normalizer\ArrayDenormalizer,
-    Normalizer\DenormalizerInterface,
-    Normalizer\GetSetMethodNormalizer,
-    Normalizer\JsonSerializableNormalizer,
-    Normalizer\NormalizableInterface,
-    Normalizer\ObjectNormalizer,
-    Normalizer\PropertyNormalizer,
-    Serializer,
-    SerializerInterface
-};
+use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Yaml\Yaml;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Throwable;
 
-class Application
+
+final class Application
 {
-    /** @var DispatcherInterface[] */
+    /** @var Dispatcher[] */
     private array $dispatchers;
 
-    private Environment $env;
+    private string $projectDir;
 
-    private SerializerInterface|NormalizableInterface|DenormalizerInterface|null $serializer;
+    private bool $isInitialized = false;
 
-    private ?ContainerInterface $container = null;
-
-    public function __construct(?SerializerInterface $serializer = null)
+    public function init(): void
     {
-        $this->serializer = $serializer;
-
-        if ($this->serializer === null) {
-            $this->serializer = $this->getSerializer();
-        }
-
         try {
-            $config = $this->serializer->denormalize(
-                Yaml::parseFile(__DIR__ . '/../config.yaml'),
-                Config::class,
-            );
+            $container = $this->initContainer();
+            $container->compile();
 
-            $this->env = Environment::fromGlobals();
+            /** @var ActionBus $bus */
+            $bus = $container->get(Service::ActionBus->value);
 
-
-            $bus = new ActionBus();
-            $router = new Router();
-
-            foreach ($config->handlers_dirs as $dir) {
-                $this->registerHandlers($dir, ActionHandler::class, $bus, $router);
+            foreach ($container->getDefinitions() as $name => $definition) {
+                if ($this->isHandler($container->getParameter('handlers_dirs'), $name)) {
+                    $bus->registerHandler(new ReflectionClass($definition->getClass()));
+                }
             }
 
-            $httpDispatcher = new HttpDispatcher();
-            $httpDispatcher->setRouter($router);
-            $httpDispatcher->setBus($bus);
+            $httpDispatcher = new HttpDispatcher(
+                $container->get(Service::PSR7Worker->value),
+                $container->get(Service::Jobs->value),
+                $bus
+            );
 
-            $queueDispatcher = new QueueDispatcher();
-            $queueDispatcher->setBus($bus);
+            $queueDispatcher = new QueueDispatcher(
+                $container->get(Service::Consumer->value),
+                $bus
+            );
 
             $this->dispatchers = [
                 $httpDispatcher,
                 $queueDispatcher,
             ];
-
-
         } catch (Throwable $exception) {
-            file_put_contents('php://stderr', $exception->getMessage());
+            file_put_contents('php://stderr', $exception->getMessage() . PHP_EOL . $exception->getTraceAsString());
         }
 
-    }
-
-    /**
-     * @throws ReflectionException
-     */
-    public function registerHandlers(string $dir, string $attributeClass, ActionBus $bus, Router $router): void
-    {
-        foreach (glob($dir. '/*.php', GLOB_NOSORT) as $handlerFilePath) {
-            preg_match('/src\/(?P<className>[A-Za-z\/]+).php/', $handlerFilePath, $matches);
-            $handlerClass = __NAMESPACE__ . '\\' .  str_replace('/', '\\', $matches['className']);
-
-            $attributes = (new ReflectionClass($handlerClass))->getAttributes();
-            if (count($attributes) > 0) {
-                array_map(
-                    static function (ReflectionAttribute $attributeName) use ($bus, $handlerClass, $router) {
-                        /** @var ActionHandler $handlerAttribute */
-                        $handlerAttribute = $attributeName->newInstance();
-
-                        $bus->registerHandler($handlerAttribute->actionClass, new $handlerClass());
-
-                        $router->registerRoute($handlerAttribute->path, $handlerAttribute->method, $handlerClass);
-                    },
-                    $attributes,
-                );
-            }
-        }
-    }
-
-    public function getSerializer(): SerializerInterface|NormalizableInterface|DenormalizerInterface
-    {
-        if (!isset($this->serializer)) {
-            $classMetadataFactory = new ClassMetadataFactory(new AttributeLoader());
-            $normalizers = [
-                new ObjectNormalizer($classMetadataFactory),
-                new ArrayDenormalizer(),
-                new JsonSerializableNormalizer($classMetadataFactory),
-                new GetSetMethodNormalizer($classMetadataFactory),
-                new PropertyNormalizer($classMetadataFactory)
-            ];
-            $encoders = [new YamlEncoder(), new JsonEncoder()];
-            $this->serializer = new Serializer($normalizers, $encoders);
-        }
-
-        return $this->serializer;
+        $this->isInitialized = true;
     }
 
     public function run(): void
     {
+        if (!$this->isInitialized) {
+            $this->init();
+        }
+
         foreach ($this->dispatchers as $dispatcher) {
-            if ($dispatcher->canServe($this->env)) {
+            if ($dispatcher->canServe(Environment::fromGlobals())) {
                 $dispatcher->serve();
             }
         }
     }
 
-    public function getContainer(): ContainerInterface
+    /**
+     * @throws Exception
+     */
+    private function initContainer(): ContainerBuilder
     {
-        if ($this->container === null) {
-            $this->container = new ContainerBuilder();
+        $container = new ContainerBuilder();
+
+        $phpLoader = new PhpFileLoader($container, new FileLocator(__DIR__));
+        $phpLoader->load($this->getAppConfigDir() . '/services.php');
+
+        $yamlLoader = new YamlFileLoader($container, new FileLocator(__DIR__));
+        $yamlLoader->load($this->getProjectConfigDir() . '/services.yaml');
+
+        return $container;
+    }
+
+    private function getApplicationDir(): string
+    {
+        return dirname(__DIR__);
+    }
+
+    public function getProjectDir(): string
+    {
+        if (!isset($this->projectDir)) {
+            $this->projectDir = get_project_dir();
         }
 
-        return $this->container;
+        return $this->projectDir;
     }
 
-    public function setContainer(ContainerInterface $container): void
+    public function getProjectConfigDir(): string
     {
-        $this->container = $container;
+        return $this->getProjectDir() . '/config';
     }
 
+    private function getAppConfigDir(): string
+    {
+        return $this->getApplicationDir() . '/config';
+    }
+
+    /**
+     * @param array<string> $handlersDirs
+     * @param string $name
+     * @return bool
+     */
+    private function isHandler(array $handlersDirs, string $name): bool
+    {
+        foreach ($handlersDirs as $dir) {
+            if (str_contains($name, $dir)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 

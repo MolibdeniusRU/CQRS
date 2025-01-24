@@ -2,32 +2,28 @@
 
 namespace molibdenius\CQRS\Dispatcher;
 
-use molibdenius\CQRS\Enum\RoadRunnerMode;
-use molibdenius\CQRS\Interface\BusInterface;
-use molibdenius\CQRS\Interface\DispatcherInterface;
+use molibdenius\CQRS\ActionBus;
+use molibdenius\CQRS\RoadRunnerMode;
 use Spiral\RoadRunner\EnvironmentInterface;
-use Spiral\RoadRunner\Jobs\Consumer;
-use Spiral\RoadRunner\Jobs\Exception\ReceivedTaskException;
-use Spiral\RoadRunner\Jobs\Exception\SerializationException;
+use Spiral\RoadRunner\Jobs\ConsumerInterface;
 
-final class QueueDispatcher implements DispatcherInterface
+final class QueueDispatcher implements Dispatcher
 {
+    public function __construct(
+        private readonly ConsumerInterface $consumer,
+        private readonly ActionBus         $bus,
+    )
+    {
+    }
 
-    public BusInterface $bus;
     public function canServe(EnvironmentInterface $env): bool
     {
         return $env->getMode() === RoadRunnerMode::Jobs->value;
     }
 
-    /**
-     * @throws SerializationException
-     * @throws ReceivedTaskException
-     */
     public function serve(): void
     {
-        $consumer = new Consumer();
-
-        while ($task = $consumer->waitTask()) {
+        while ($task = $this->consumer->waitTask()) {
             try {
                 $action = unserialize($task->getPayload(), ['allowed_classes' => true]);
 
@@ -39,17 +35,4 @@ final class QueueDispatcher implements DispatcherInterface
             }
         }
     }
-
-
-    public function getBus(): BusInterface
-    {
-        return $this->bus;
-    }
-
-    public function setBus(BusInterface $bus): void
-    {
-        $this->bus = $bus;
-    }
-
-
 }
