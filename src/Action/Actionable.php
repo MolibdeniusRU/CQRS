@@ -9,6 +9,7 @@ use molibdenius\CQRS\Action\Enum\PayloadType;
 use ReflectionClass;
 use ReflectionProperty;
 
+
 trait Actionable
 {
     private ActionState $actionState;

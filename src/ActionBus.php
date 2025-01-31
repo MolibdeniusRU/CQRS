@@ -12,11 +12,12 @@ use ReflectionAttribute;
 use ReflectionClass;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Contracts\Service\ServiceSubscriberInterface;
 use Throwable;
 use WS\Utils\Collections\ArrayList;
 use WS\Utils\Collections\Functions\Reorganizers;
 
-final readonly class ActionBus
+final readonly class ActionBus implements ServiceSubscriberInterface
 {
     public function __construct(
         private ContainerInterface $container,
@@ -26,7 +27,7 @@ final readonly class ActionBus
     }
 
     /**
-     * @param ReflectionClass<Handler> $handlerReflection
+     * @param ReflectionClass<object> $handlerReflection
      *
      * @return void
      */
@@ -53,8 +54,7 @@ final readonly class ActionBus
     public function dispatch(Action $action): mixed
     {
         try {
-            $actionClass = get_class($action);
-            $handler = $this->container->get($this->router->resolveHandler($actionClass));
+            $handler = $this->container->get($this->router->resolveHandler($action::class));
             if (!$handler instanceof Handler) {
                 throw new RuntimeException(sprintf("Class %s does not implement HandlerInterface", $handler::class));
             }
@@ -78,5 +78,12 @@ final readonly class ActionBus
         $action->setActionPayloadType($this->router->getActionPayloadType($actionClass));
 
         return $action;
+    }
+
+    public static function getSubscribedServices(): array
+    {
+        return [
+
+        ];
     }
 }

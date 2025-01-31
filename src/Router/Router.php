@@ -31,8 +31,8 @@ final class Router
      * @param string $route
      * @param HttpMethod $method
      * @param PayloadType $payloadType
-     * @param class-string<Action> $action
-     * @param class-string<Handler> $handler
+     * @param class-string $action
+     * @param class-string $handler
      * @param ActionType $type
      * @param string|null $name
      *

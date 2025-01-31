@@ -86,7 +86,7 @@ class GetUserCollectionHandler implements Handler
 ````yaml
 # ./config/services.yaml
 parameters:
- handlers_dirs: [App\Handler\Command\, App\Handler\Query\]
+ handlers_namespaces: [App\Handler\Command\, App\Handler\Query\]
 
 services:
  # default configuration for services in *this* file

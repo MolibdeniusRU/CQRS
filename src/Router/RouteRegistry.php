@@ -11,7 +11,7 @@ final readonly class RouteRegistry
      * @param string $path
      * @param HttpMethod $method
      * @param PayloadType $payloadType
-     * @param class-string<Action> $action
+     * @param class-string $action
      * @param string|null $name
      */
     public function __construct(

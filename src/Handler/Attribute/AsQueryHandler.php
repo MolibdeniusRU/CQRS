@@ -10,6 +10,12 @@ use molibdenius\CQRS\Router\HttpMethod;
 #[Attribute]
 class AsQueryHandler extends ActionHandler
 {
+    /**
+     * @param class-string $queryClass
+     * @param string $path
+     * @param HttpMethod $method
+     * @param PayloadType $payloadType
+     */
     public function __construct(string $queryClass, string $path, HttpMethod $method, PayloadType $payloadType)
     {
         parent::__construct(

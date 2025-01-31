@@ -9,9 +9,9 @@ use molibdenius\CQRS\Handler\Handler;
 final readonly class HandlerRegistry
 {
     /**
-     * @param class-string<Action> $action
+     * @param class-string $action
      * @param ActionType $type
-     * @param class-string<Handler> $handler
+     * @param class-string $handler
      */
     public function __construct(
         public string     $action,

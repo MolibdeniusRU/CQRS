@@ -10,21 +10,48 @@ use molibdenius\CQRS\Dispatcher\HttpDispatcher;
 use molibdenius\CQRS\Dispatcher\QueueDispatcher;
 use ReflectionClass;
 use Spiral\RoadRunner\Environment;
-use Symfony\Component\Config\FileLocator;
+use Spiral\RoadRunner\Http\PSR7WorkerInterface;
+use Spiral\RoadRunner\Jobs\ConsumerInterface;
+use Spiral\RoadRunner\Jobs\JobsInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Throwable;
+use WS\Utils\Collections\ArrayList;
+use WS\Utils\Collections\Collection;
 
 
 final class Application
 {
-    /** @var Dispatcher[] */
-    private array $dispatchers;
+    /** @var ArrayList<Dispatcher> */
+    private ArrayList $dispatchers;
 
     private string $projectDir;
 
     private bool $isInitialized = false;
+
+    private ApplicationMode $applicationMode;
+
+    private Environment $env;
+
+    /**
+     * @param Environment|null $env
+     * @param ApplicationMode|null $applicationMode
+     */
+    public function __construct(?Environment $env = null, ?ApplicationMode $applicationMode = null)
+    {
+        if ($env === null) {
+            $env = Environment::fromGlobals();
+        }
+
+        $this->env = $env;
+
+        if ($applicationMode === null) {
+            $applicationMode = ApplicationMode::Production;
+        }
+
+        $this->applicationMode = $applicationMode;
+
+        $this->dispatchers = new ArrayList();
+    }
 
     public function init(): void
     {
@@ -36,28 +63,35 @@ final class Application
             $bus = $container->get(Service::ActionBus->value);
 
             foreach ($container->getDefinitions() as $name => $definition) {
-                if ($this->isHandler($container->getParameter('handlers_dirs'), $name)) {
-                    $bus->registerHandler(new ReflectionClass($definition->getClass()));
+                if ($this->isHandler(Arraylist::of($container->getParameter('handlers_namespaces')), $name)) {
+                    /** @var class-string $handlerClass */
+                    $handlerClass = $definition->getClass();
+
+                    $bus->registerHandler(new ReflectionClass($handlerClass));
                 }
             }
 
-            $httpDispatcher = new HttpDispatcher(
-                $container->get(Service::PSR7Worker->value),
-                $container->get(Service::Jobs->value),
-                $bus
-            );
+            /** @var PSR7WorkerInterface $PSR7Worker */
+            $PSR7Worker = $container->get(Service::PSR7Worker->value);
 
-            $queueDispatcher = new QueueDispatcher(
-                $container->get(Service::Consumer->value),
-                $bus
-            );
+            /** @var JobsInterface $jobs */
+            $jobs = $container->get(Service::Jobs->value);
 
-            $this->dispatchers = [
-                $httpDispatcher,
-                $queueDispatcher,
-            ];
+            /** @var ConsumerInterface $consumer */
+            $consumer = $container->get(Service::Consumer->value);
+
+            $this->dispatchers->addAll([
+                new HttpDispatcher($PSR7Worker, $jobs, $bus),
+                new QueueDispatcher($consumer, $bus)
+            ]);
+
         } catch (Throwable $exception) {
-            file_put_contents('php://stderr', $exception->getMessage() . PHP_EOL . $exception->getTraceAsString());
+            $data = $exception->getMessage();
+            if ($this->applicationMode !== ApplicationMode::Production) {
+                $data .= PHP_EOL . $exception->getTraceAsString();
+            }
+
+            file_put_contents('php://stderr', $data);
         }
 
         $this->isInitialized = true;
@@ -69,11 +103,13 @@ final class Application
             $this->init();
         }
 
-        foreach ($this->dispatchers as $dispatcher) {
-            if ($dispatcher->canServe(Environment::fromGlobals())) {
-                $dispatcher->serve();
-            }
-        }
+        $this->dispatchers
+            ->stream()
+            ->map(function (Dispatcher $dispatcher) {
+                if ($dispatcher->canServe($this->env)) {
+                    $dispatcher->serve();
+                }
+            });
     }
 
     /**
@@ -81,15 +117,7 @@ final class Application
      */
     private function initContainer(): ContainerBuilder
     {
-        $container = new ContainerBuilder();
-
-        $phpLoader = new PhpFileLoader($container, new FileLocator(__DIR__));
-        $phpLoader->load($this->getAppConfigDir() . '/services.php');
-
-        $yamlLoader = new YamlFileLoader($container, new FileLocator(__DIR__));
-        $yamlLoader->load($this->getProjectConfigDir() . '/services.yaml');
-
-        return $container;
+        return ContainerFactory::create($this->getAppConfigDir(), $this->getProjectConfigDir());
     }
 
     private function getApplicationDir(): string
@@ -117,18 +145,17 @@ final class Application
     }
 
     /**
-     * @param array<string> $handlersDirs
+     * @param Collection $namespaces
      * @param string $name
      * @return bool
      */
-    private function isHandler(array $handlersDirs, string $name): bool
+    private function isHandler(Collection $namespaces, string $name): bool
     {
-        foreach ($handlersDirs as $dir) {
-            if (str_contains($name, $dir)) {
-                return true;
-            }
-        }
-        return false;
+        $isContain = $namespaces->stream()->findFirst(function (string $namespace) use ($name): bool {
+            return str_contains($name, $namespace);
+        });
+
+        return $isContain !== null;
     }
 }
 
