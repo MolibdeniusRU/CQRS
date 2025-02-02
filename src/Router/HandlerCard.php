@@ -6,12 +6,12 @@ use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionType;
 use molibdenius\CQRS\Handler\Handler;
 
-final readonly class HandlerRegistry
+final readonly class HandlerCard
 {
     /**
-     * @param class-string $action
+     * @param class-string<Action> $action
      * @param ActionType $type
-     * @param class-string $handler
+     * @param class-string<Handler> $handler
      */
     public function __construct(
         public string     $action,

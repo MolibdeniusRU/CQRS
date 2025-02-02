@@ -5,26 +5,28 @@ namespace molibdenius\CQRS;
 require_once __DIR__ . '/../helpers/functions.php';
 
 use Exception;
+use molibdenius\CQRS\Action\Action;
+use molibdenius\CQRS\Bus\ActionBus;
 use molibdenius\CQRS\Dispatcher\Dispatcher;
 use molibdenius\CQRS\Dispatcher\HttpDispatcher;
 use molibdenius\CQRS\Dispatcher\QueueDispatcher;
+use molibdenius\CQRS\Handler\Handler;
 use ReflectionClass;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\Http\PSR7WorkerInterface;
 use Spiral\RoadRunner\Jobs\ConsumerInterface;
 use Spiral\RoadRunner\Jobs\JobsInterface;
+use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Throwable;
 use WS\Utils\Collections\ArrayList;
-use WS\Utils\Collections\Collection;
 
 
 final class Application
 {
     /** @var ArrayList<Dispatcher> */
     private ArrayList $dispatchers;
-
-    private string $projectDir;
 
     private bool $isInitialized = false;
 
@@ -57,14 +59,13 @@ final class Application
     {
         try {
             $container = $this->initContainer();
-            $container->compile();
 
             /** @var ActionBus $bus */
             $bus = $container->get(Service::ActionBus->value);
 
-            foreach ($container->getDefinitions() as $name => $definition) {
-                if ($this->isHandler(Arraylist::of($container->getParameter('handlers_namespaces')), $name)) {
-                    /** @var class-string $handlerClass */
+            foreach ($container->getDefinitions() as $definition) {
+                if ($definition->hasTag('cqrs.handler')) {
+                    /** @var class-string<Action> $handlerClass */
                     $handlerClass = $definition->getClass();
 
                     $bus->registerHandler(new ReflectionClass($handlerClass));
@@ -117,45 +118,16 @@ final class Application
      */
     private function initContainer(): ContainerBuilder
     {
-        return ContainerFactory::create($this->getAppConfigDir(), $this->getProjectConfigDir());
+        $container = new ContainerBuilder();
+
+        $phpLoader = new PhpFileLoader($container, new FileLocator(__DIR__));
+        $phpLoader->load(__DIR__ . '/config/services.php');
+
+        $container->registerForAutoconfiguration(Handler::class)->addTag('cqrs.handler');
+        $container->compile();
+
+        return $container;
     }
 
-    private function getApplicationDir(): string
-    {
-        return dirname(__DIR__);
-    }
-
-    public function getProjectDir(): string
-    {
-        if (!isset($this->projectDir)) {
-            $this->projectDir = get_project_dir();
-        }
-
-        return $this->projectDir;
-    }
-
-    public function getProjectConfigDir(): string
-    {
-        return $this->getProjectDir() . '/config';
-    }
-
-    private function getAppConfigDir(): string
-    {
-        return $this->getApplicationDir() . '/config';
-    }
-
-    /**
-     * @param Collection $namespaces
-     * @param string $name
-     * @return bool
-     */
-    private function isHandler(Collection $namespaces, string $name): bool
-    {
-        $isContain = $namespaces->stream()->findFirst(function (string $namespace) use ($name): bool {
-            return str_contains($name, $namespace);
-        });
-
-        return $isContain !== null;
-    }
 }
 

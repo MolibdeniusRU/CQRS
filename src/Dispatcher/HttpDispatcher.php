@@ -7,7 +7,7 @@ use JsonException;
 use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionType;
 use molibdenius\CQRS\Action\Enum\PayloadType;
-use molibdenius\CQRS\ActionBus;
+use molibdenius\CQRS\Bus\Bus;
 use molibdenius\CQRS\RoadRunnerMode;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ServerRequestInterface;
@@ -28,7 +28,7 @@ final class HttpDispatcher implements Dispatcher
     public function __construct(
         private readonly PSR7WorkerInterface $worker,
         private readonly JobsInterface       $jobs,
-        private readonly ActionBus           $bus,
+        private readonly Bus                 $bus,
     )
     {
     }

@@ -1,6 +1,6 @@
 <?php
 
-namespace molibdenius\CQRS;
+namespace molibdenius\CQRS\Bus;
 
 use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionState;
@@ -11,23 +11,24 @@ use Psr\Http\Message\ServerRequestInterface;
 use ReflectionAttribute;
 use ReflectionClass;
 use RuntimeException;
+use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Contracts\Service\ServiceSubscriberInterface;
 use Throwable;
 use WS\Utils\Collections\ArrayList;
 use WS\Utils\Collections\Functions\Reorganizers;
 
-final readonly class ActionBus implements ServiceSubscriberInterface
+final readonly class ActionBus implements Bus
 {
     public function __construct(
-        private ContainerInterface $container,
+        #[AutowireLocator('cqrs.handler')]
+        private ContainerInterface $handlers,
         private Router             $router,
     )
     {
     }
 
     /**
-     * @param ReflectionClass<object> $handlerReflection
+     * @param ReflectionClass<Action> $handlerReflection
      *
      * @return void
      */
@@ -54,9 +55,9 @@ final readonly class ActionBus implements ServiceSubscriberInterface
     public function dispatch(Action $action): mixed
     {
         try {
-            $handler = $this->container->get($this->router->resolveHandler($action::class));
+            $handler = $this->handlers->get($this->router->resolveHandler($action::class));
             if (!$handler instanceof Handler) {
-                throw new RuntimeException(sprintf("Class %s does not implement HandlerInterface", $handler::class));
+                throw new RuntimeException(sprintf("Class %s does not implement " . Handler::class, $handler::class));
             }
 
             $result = $handler->handle($action);
@@ -78,12 +79,5 @@ final readonly class ActionBus implements ServiceSubscriberInterface
         $action->setActionPayloadType($this->router->getActionPayloadType($actionClass));
 
         return $action;
-    }
-
-    public static function getSubscribedServices(): array
-    {
-        return [
-
-        ];
     }
 }

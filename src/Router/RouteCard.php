@@ -5,13 +5,13 @@ namespace molibdenius\CQRS\Router;
 use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\PayloadType;
 
-final readonly class RouteRegistry
+final readonly class RouteCard
 {
     /**
      * @param string $path
      * @param HttpMethod $method
      * @param PayloadType $payloadType
-     * @param class-string $action
+     * @param class-string<Action> $action
      * @param string|null $name
      */
     public function __construct(

@@ -12,23 +12,23 @@ use WS\Utils\Collections\ArrayStrictList;
 final class Router
 {
     /**
-     * @var ArrayStrictList<RouteRegistry>
+     * @var ArrayStrictList<RouteCard>
      */
-    private ArrayStrictList $routes;
+    private ArrayStrictList $routeRegistry;
 
     /**
-     * @var ArrayStrictList<HandlerRegistry>
+     * @var ArrayStrictList<HandlerCard>
      */
-    private ArrayStrictList $handlers;
+    private ArrayStrictList $handlerRegistry;
 
     public function __construct()
     {
-        $this->routes = new ArrayStrictList();
-        $this->handlers = new ArrayStrictList();
+        $this->routeRegistry = new ArrayStrictList();
+        $this->handlerRegistry = new ArrayStrictList();
     }
 
     /**
-     * @param string $route
+     * @param string $path
      * @param HttpMethod $method
      * @param PayloadType $payloadType
      * @param class-string $action
@@ -39,7 +39,7 @@ final class Router
      * @return void
      */
     public function registerRoute(
-        string      $route,
+        string      $path,
         HttpMethod  $method,
         PayloadType $payloadType,
         string      $action,
@@ -48,9 +48,9 @@ final class Router
         string|null $name = null
     ): void
     {
-        $this->routes->add(new RouteRegistry($route, $method, $payloadType, $action, $name));
+        $this->routeRegistry->add(new RouteCard($path, $method, $payloadType, $action, $name));
 
-        $this->handlers->add(new HandlerRegistry($action, $type, $handler));
+        $this->handlerRegistry->add(new HandlerCard($action, $type, $handler));
     }
 
     /** @return class-string<Action> */
@@ -59,8 +59,8 @@ final class Router
         $path = $request->getUri()->getPath();
         $method = $request->getMethod();
 
-        return $this->routes->stream()
-            ->findFirst(function (RouteRegistry $route) use ($path, $method) {
+        return $this->routeRegistry->stream()
+            ->findFirst(function (RouteCard $route) use ($path, $method) {
                 return $route->path === $path && $route->method === HttpMethod::get($method);
             })->action;
     }
@@ -72,8 +72,8 @@ final class Router
      */
     public function resolveHandler(string $action): string
     {
-        return $this->handlers->stream()
-            ->findFirst(function (HandlerRegistry $handler) use ($action) {
+        return $this->handlerRegistry->stream()
+            ->findFirst(function (HandlerCard $handler) use ($action) {
                 return $handler->action === $action;
             })->handler;
     }
@@ -85,16 +85,16 @@ final class Router
      */
     public function getActionType(string $action): ActionType
     {
-        return $this->handlers->stream()
-            ->findFirst(function (HandlerRegistry $handler) use ($action) {
+        return $this->handlerRegistry->stream()
+            ->findFirst(function (HandlerCard $handler) use ($action) {
                 return $handler->action === $action;
             })->type;
     }
 
     public function getActionPayloadType(string $action): PayloadType
     {
-        return $this->routes->stream()
-            ->findFirst(function (RouteRegistry $route) use ($action) {
+        return $this->routeRegistry->stream()
+            ->findFirst(function (RouteCard $route) use ($action) {
                 return $route->action === $action;
             })->payloadType;
     }

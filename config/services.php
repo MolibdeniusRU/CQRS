@@ -10,8 +10,8 @@ use Doctrine\DBAL\Tools\DsnParser;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMSetup;
-use molibdenius\CQRS\ActionBus;
 use molibdenius\CQRS\ApplicationMode;
+use molibdenius\CQRS\Bus\ActionBus;
 use molibdenius\CQRS\Router\Router;
 use molibdenius\CQRS\Service;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -28,6 +28,8 @@ use function get_project_dir;
 
 
 return static function (ContainerConfigurator $container) {
+    $container->import(get_project_dir() . '/config/service.yaml');
+
     $services = $container->services();
 
     $setUp = [
