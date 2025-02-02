@@ -28,7 +28,7 @@ final readonly class ActionBus implements Bus
     }
 
     /**
-     * @param ReflectionClass<Action> $handlerReflection
+     * @param ReflectionClass<Handler> $handlerReflection
      *
      * @return void
      */

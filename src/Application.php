@@ -5,7 +5,6 @@ namespace molibdenius\CQRS;
 require_once __DIR__ . '/../helpers/functions.php';
 
 use Exception;
-use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Bus\ActionBus;
 use molibdenius\CQRS\Dispatcher\Dispatcher;
 use molibdenius\CQRS\Dispatcher\HttpDispatcher;
@@ -65,7 +64,7 @@ final class Application
 
             foreach ($container->getDefinitions() as $definition) {
                 if ($definition->hasTag('cqrs.handler')) {
-                    /** @var class-string<Action> $handlerClass */
+                    /** @var class-string<Handler> $handlerClass */
                     $handlerClass = $definition->getClass();
 
                     $bus->registerHandler(new ReflectionClass($handlerClass));

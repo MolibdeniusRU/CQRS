@@ -12,7 +12,7 @@ use molibdenius\CQRS\Router\HttpMethod;
 class ActionHandler
 {
     /**
-     * @param class-string $actionClass
+     * @param class-string<Action> $actionClass
      * @param string $path
      * @param HttpMethod $method
      * @param PayloadType $payloadType

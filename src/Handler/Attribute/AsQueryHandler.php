@@ -3,6 +3,7 @@
 namespace molibdenius\CQRS\Handler\Attribute;
 
 use Attribute;
+use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionType;
 use molibdenius\CQRS\Action\Enum\PayloadType;
 use molibdenius\CQRS\Router\HttpMethod;
@@ -11,7 +12,7 @@ use molibdenius\CQRS\Router\HttpMethod;
 class AsQueryHandler extends ActionHandler
 {
     /**
-     * @param class-string $queryClass
+     * @param class-string<Action> $queryClass
      * @param string $path
      * @param HttpMethod $method
      * @param PayloadType $payloadType
