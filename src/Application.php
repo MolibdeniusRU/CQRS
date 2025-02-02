@@ -120,7 +120,7 @@ final class Application
         $container = new ContainerBuilder();
 
         $phpLoader = new PhpFileLoader($container, new FileLocator(__DIR__));
-        $phpLoader->load(__DIR__ . '/config/services.php');
+        $phpLoader->load(__DIR__ . '/../config/services.php');
 
         $container->registerForAutoconfiguration(Handler::class)->addTag('cqrs.handler');
         $container->compile();
