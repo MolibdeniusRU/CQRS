@@ -42,7 +42,6 @@ class CreateUserCommand implements Action
     method: HttpMethod::POST,
     payloadType: PayloadType::Body  
 )]
-#[Autoconfigure(public: true)] // Необходимо указывать для корректной компиляции сервис-контейнера
 class CreateUserHandler implements Handler
 {
     public function handle(Action $action) 
@@ -85,9 +84,6 @@ class GetUserCollectionHandler implements Handler
 
 ````yaml
 # ./config/services.yaml
-parameters:
- handlers_namespaces: [App\Handler\Command\, App\Handler\Query\]
-
 services:
  # default configuration for services in *this* file
  _defaults:
@@ -117,17 +113,12 @@ doctrine:
     url: '%env(resolve:DATABASE_URL)%'
 
   orm:
-    auto_generate_proxy_classes: true
-    enable_lazy_ghost_objects: true
-    report_fields_where_declared: true
-    validate_xml_mapping: true
-    naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
     auto_mapping: true
     mappings:
       App:
         type: attribute
         is_bundle: false
-        dir: '%kernel.project_dir%/src/Entity'
+        dir: '../src/Entity'
         prefix: 'App\Entity'
         alias: App
 ````
