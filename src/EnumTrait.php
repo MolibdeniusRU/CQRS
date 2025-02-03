@@ -1,17 +1,23 @@
 <?php
 
-namespace molibdenius\CQRS\Trait;
+namespace molibdenius\CQRS;
 
-/** @method static cases() */
 trait EnumTrait
 {
+    /** @return array<mixed> */
     public static function getValues(): array
     {
         return array_column(self::cases(), 'value');
     }
 
+    /** @return array<mixed> */
     public static function getNames(): array
     {
         return array_column(self::cases(), 'name');
+    }
+
+    public static function get(string $name): self
+    {
+        return self::tryFrom($name);
     }
 }
