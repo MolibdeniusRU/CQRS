@@ -17,9 +17,12 @@ use Spiral\RoadRunner\Jobs\ConsumerInterface;
 use Spiral\RoadRunner\Jobs\JobsInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Throwable;
 use WS\Utils\Collections\ArrayList;
+use WS\Utils\Collections\ArrayStrictList;
 
 
 final class Application
@@ -62,14 +65,17 @@ final class Application
             /** @var ActionBus $bus */
             $bus = $container->get(Service::ActionBus->value);
 
-            foreach ($container->getDefinitions() as $definition) {
-                if ($definition->hasTag('cqrs.handler')) {
-                    /** @var class-string<Handler> $handlerClass */
-                    $handlerClass = $definition->getClass();
+            $definitions = new ArrayStrictList();
+            $definitions->addAll($container->getDefinitions());
+            $definitions->stream()
+                ->map(function (Definition $definition) use ($bus) {
+                    if ($definition->hasTag('cqrs.handler')) {
+                        /** @var class-string<Handler> $handlerClass */
+                        $handlerClass = $definition->getClass();
 
-                    $bus->registerHandler(new ReflectionClass($handlerClass));
-                }
-            }
+                        $bus->registerHandler(new ReflectionClass($handlerClass));
+                    }
+                });
 
             /** @var PSR7WorkerInterface $PSR7Worker */
             $PSR7Worker = $container->get(Service::PSR7Worker->value);
@@ -119,8 +125,13 @@ final class Application
     {
         $container = new ContainerBuilder();
 
-        $phpLoader = new PhpFileLoader($container, new FileLocator(__DIR__));
+        $fileLocator = new FileLocator(__DIR__);
+
+        $phpLoader = new PhpFileLoader($container, $fileLocator);
         $phpLoader->load(__DIR__ . '/../config/services.php');
+
+        $yamlLoader = new YamlFileLoader($container, $fileLocator);
+        $yamlLoader->load(get_project_dir() . '/config/services.yaml');
 
         $container->registerForAutoconfiguration(Handler::class)->addTag('cqrs.handler');
         $container->compile();

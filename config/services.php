@@ -28,7 +28,7 @@ use function get_project_dir;
 
 
 return static function (ContainerConfigurator $container) {
-    $container->import(get_project_dir() . '/config/service.yaml');
+    $container->import(get_project_dir() . '/config/services.yaml');
 
     $services = $container->services();
 
