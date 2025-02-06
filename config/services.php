@@ -28,8 +28,6 @@ use function get_project_dir;
 
 
 return static function (ContainerConfigurator $container) {
-    $container->import(get_project_dir() . '/config/services.yaml');
-
     $services = $container->services();
 
     $setUp = [
@@ -88,10 +86,8 @@ return static function (ContainerConfigurator $container) {
         static function (ServicesConfigurator $services) {
             $services
                 ->set(ActionBus::class)
-                ->args([
-                    service(Service::ServiceContainer->value),
-                    service(Service::Router->value)
-                ]);
+                ->autowire()
+                ->autoconfigure();
 
             return $services->alias(Service::ActionBus->value, ActionBus::class)->public();
         },
