@@ -8,9 +8,13 @@ use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionType;
 use molibdenius\CQRS\Action\Enum\PayloadType;
 use molibdenius\CQRS\Bus\Bus;
+use molibdenius\CQRS\Extractor\Extractor;
+use molibdenius\CQRS\Extractor\ExtractorFactory;
 use molibdenius\CQRS\RoadRunnerMode;
+use molibdenius\CQRS\Router\Router;
 use Nyholm\Psr7\Response;
 use Psr\Http\Message\ServerRequestInterface;
+use RuntimeException;
 use Spiral\RoadRunner\EnvironmentInterface;
 use Spiral\RoadRunner\Http\PSR7WorkerInterface;
 use Spiral\RoadRunner\Jobs\Exception\JobsException;
@@ -29,6 +33,7 @@ final class HttpDispatcher implements Dispatcher
         private readonly PSR7WorkerInterface $worker,
         private readonly JobsInterface       $jobs,
         private readonly Bus                 $bus,
+        private readonly Router $router,
     )
     {
     }
@@ -56,11 +61,20 @@ final class HttpDispatcher implements Dispatcher
                     break;
                 }
 
-                $action = $this->bus->resolveAction($request);
+                $routeParams = $this->router->resolveRouteParams($request);
 
-                $payload = $this->extractPayload($request, $action->getActionPayloadType());
+                if (!isset($routeParams['_action'])) {
+                    throw new RuntimeException(sprintf("On route %s action does not exist.", $request->getUri()->getPath()));
+                }
+                /** @var class-string<Action> $actionClass */
+                $actionClass = $routeParams['_action'];
 
-                if ($payload !== null) {
+                $action = $this->bus->resolveAction($actionClass);
+                $action->load($routeParams);
+
+                $payload = $this->getPayloadExtractor($request, $action->getActionPayloadTypes())->extract();
+
+                if (!empty($payload)) {
                     $action->load($payload);
                 }
 
@@ -77,7 +91,8 @@ final class HttpDispatcher implements Dispatcher
                             'message' => $e->getMessage(),
                             'trace' => $e->getTrace(),
                         ], JSON_THROW_ON_ERROR),
-                    ));
+                    )
+                );
             }
         }
     }
@@ -97,7 +112,10 @@ final class HttpDispatcher implements Dispatcher
         $this->worker->respond(new Response(
             200,
             ['Content-Type' => 'application/json'],
-            json_encode(['task_id' => $task->getId()], JSON_THROW_ON_ERROR),
+            json_encode([
+                'message' => 'Your command has been accepted for processing',
+                'task_id' => $task->getId()
+            ], JSON_THROW_ON_ERROR),
         ));
     }
 
@@ -115,22 +133,9 @@ final class HttpDispatcher implements Dispatcher
         ));
     }
 
-    /**
-     * @return array<string, mixed>|null
-     * @throws JsonException
-     */
-    private function extractPayload(ServerRequestInterface $request, ?PayloadType $payloadType): array|null
+    /** @param PayloadType[] $payloadTypes */
+    private function getPayloadExtractor(ServerRequestInterface $request, array $payloadTypes): Extractor
     {
-        return match ($payloadType) {
-            PayloadType::Query => $request->getQueryParams(),
-            PayloadType::Body => $request->getParsedBody() ??
-                json_decode(
-                    json: $request->getBody()->getContents(),
-                    associative: true,
-                    depth: 512,
-                    flags: JSON_THROW_ON_ERROR
-                ),
-            default => null,
-        };
+        return ExtractorFactory::createExtractor('http.payload.extractor', $request, $payloadTypes);
     }
 }

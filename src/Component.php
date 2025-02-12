@@ -2,7 +2,7 @@
 
 namespace molibdenius\CQRS;
 
-enum Service: string
+enum Component: string
 {
     case RPC = "rpc";
 

@@ -6,24 +6,19 @@ use Attribute;
 use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionType;
 use molibdenius\CQRS\Action\Enum\PayloadType;
-use molibdenius\CQRS\Router\HttpMethod;
 
 #[Attribute]
 class AsCommandHandler extends ActionHandler
 {
     /**
      * @param class-string<Action> $commandClass
-     * @param string $path
-     * @param HttpMethod $method
-     * @param PayloadType $payloadType
+     * @param PayloadType[] $payloadTypes
      */
-    public function __construct(string $commandClass, string $path, HttpMethod $method, PayloadType $payloadType)
+    public function __construct(string $commandClass, array $payloadTypes)
     {
         parent::__construct(
             actionClass: $commandClass,
-            path: $path,
-            method: $method,
-            payloadType: $payloadType,
+            payloadTypes: $payloadTypes,
             type: ActionType::Command
         );
     }

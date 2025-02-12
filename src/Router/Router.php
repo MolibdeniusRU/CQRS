@@ -2,101 +2,52 @@
 
 namespace molibdenius\CQRS\Router;
 
-use molibdenius\CQRS\Action\Action;
-use molibdenius\CQRS\Action\Enum\ActionType;
-use molibdenius\CQRS\Action\Enum\PayloadType;
-use molibdenius\CQRS\Handler\Handler;
+use Exception;
 use Psr\Http\Message\ServerRequestInterface;
-use WS\Utils\Collections\ArrayStrictList;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\Routing\Router as SymfonyRouter;
 
-final class Router
+final class Router extends SymfonyRouter
 {
     /**
-     * @var ArrayStrictList<RouteCard>
+     * @return mixed[]
      */
-    private ArrayStrictList $routeRegistry;
-
-    /**
-     * @var ArrayStrictList<HandlerCard>
-     */
-    private ArrayStrictList $handlerRegistry;
-
-    public function __construct()
+    public function resolveRouteParams(ServerRequestInterface $request): array
     {
-        $this->routeRegistry = new ArrayStrictList();
-        $this->handlerRegistry = new ArrayStrictList();
+        $this->setContext(new RequestContext(
+            baseUrl: $request->getUri(),
+            method: $request->getMethod(),
+            host: $request->getUri()->getHost(),
+            scheme: $request->getUri()->getScheme(),
+            path: $request->getUri()->getPath(),
+            queryString: $request->getUri()->getQuery()
+        ));
+
+        return $this->match($request->getUri()->getPath());
     }
 
     /**
-     * @param string $path
-     * @param HttpMethod $method
-     * @param PayloadType $payloadType
-     * @param class-string<Action> $action
-     * @param class-string<Handler> $handler
-     * @param ActionType $type
-     * @param string|null $name
-     *
-     * @return void
+     * @throws Exception
      */
-    public function registerRoute(
-        string      $path,
-        HttpMethod  $method,
-        PayloadType $payloadType,
-        string      $action,
-        string      $handler,
-        ActionType  $type,
-        string|null $name = null
-    ): void
+    public function getRouteCollection(): RouteCollection
     {
-        $this->routeRegistry->add(new RouteCard($path, $method, $payloadType, $action, $name));
+        if (isset($this->collection)) {
+            return $this->collection;
+        }
 
-        $this->handlerRegistry->add(new HandlerCard($action, $type, $handler));
+        $this->collection = new RouteCollection();
+
+        foreach ($this->resource as $class) {
+            $this->collection->addCollection($this->loader->load($class));
+        }
+
+        return $this->collection;
     }
 
-    /** @return class-string<Action> */
-    public function resolveAction(ServerRequestInterface $request): string
+    public function setResource(mixed $resource): void
     {
-        $path = $request->getUri()->getPath();
-        $method = $request->getMethod();
-
-        return $this->routeRegistry->stream()
-            ->findFirst(function (RouteCard $route) use ($path, $method) {
-                return $route->path === $path && $route->method === HttpMethod::get($method);
-            })->action;
-    }
-
-    /**
-     * @param class-string<Action> $action
-     *
-     * @return class-string<Handler>
-     */
-    public function resolveHandler(string $action): string
-    {
-        return $this->handlerRegistry->stream()
-            ->findFirst(function (HandlerCard $handler) use ($action) {
-                return $handler->action === $action;
-            })->handler;
-    }
-
-    /**
-     * @param class-string<Action> $action
-     *
-     * @return ActionType
-     */
-    public function getActionType(string $action): ActionType
-    {
-        return $this->handlerRegistry->stream()
-            ->findFirst(function (HandlerCard $handler) use ($action) {
-                return $handler->action === $action;
-            })->type;
-    }
-
-    public function getActionPayloadType(string $action): PayloadType
-    {
-        return $this->routeRegistry->stream()
-            ->findFirst(function (RouteCard $route) use ($action) {
-                return $route->action === $action;
-            })->payloadType;
+        $this->resource = $resource;
     }
 
 }
