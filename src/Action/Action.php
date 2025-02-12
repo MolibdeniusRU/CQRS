@@ -13,48 +13,37 @@ interface Action
 {
     /**
      * Получить состояние действия.
-     *
-     * @return ActionState
      */
     public function getActionState(): ActionState;
 
     /**
      * Задать состояние действия.
-     *
-     * @param ActionState $state
-     * @return void
      */
-    public function setActionState(ActionState $state): void;
+    public function setActionState(ActionState $actionState): void;
 
     /**
      * Получить тип действия.
-     *
-     * @return ActionType
      */
     public function getActionType(): ActionType;
 
     /**
      * Задать тип действия.
-     *
-     * @param ActionType $type
-     * @return void
      */
-    public function setActionType(ActionType $type): void;
+    public function setActionType(ActionType $actionType): void;
 
     /**
      * Получить тип передачи полезной нагрузки.
      *
-     * @return PayloadType
+     * @return PayloadType[]
      */
-    public function getActionPayloadType(): PayloadType;
+    public function getActionPayloadTypes(): array;
 
     /**
      * Задать тип полезной нагрузки.
      *
-     * @param PayloadType $payloadType
-     * @return void
+     * @param PayloadType[] $actionPayloadTypes
      */
-    public function setActionPayloadType(PayloadType $payloadType): void;
+    public function setActionPayloadTypes(array $actionPayloadTypes): void;
 
     /**
      * Метод для загрузки атрибутов интеграции.

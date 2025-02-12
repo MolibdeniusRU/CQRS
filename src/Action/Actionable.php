@@ -16,7 +16,8 @@ trait Actionable
 
     private ActionType $actionType;
 
-    private PayloadType $actionPayloadType;
+    /** @var PayloadType[] */
+    private array $actionPayloadTypes;
 
     public function getActionState(): ActionState
     {
@@ -38,14 +39,17 @@ trait Actionable
         $this->actionType = $actionType;
     }
 
-    public function getActionPayloadType(): PayloadType
+    public function getActionPayloadTypes(): array
     {
-        return $this->actionPayloadType;
+        return $this->actionPayloadTypes;
     }
 
-    public function setActionPayloadType(PayloadType $actionPayloadType): void
+    /**
+     * @param PayloadType[] $actionPayloadTypes
+     */
+    public function setActionPayloadTypes(array $actionPayloadTypes): void
     {
-        $this->actionPayloadType = $actionPayloadType;
+        $this->actionPayloadTypes = $actionPayloadTypes;
     }
 
     public function load(array $attributes): void
