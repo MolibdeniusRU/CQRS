@@ -6,7 +6,6 @@ use Exception;
 use JsonException;
 use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionType;
-use molibdenius\CQRS\Action\Enum\PayloadType;
 use molibdenius\CQRS\Bus\Bus;
 use molibdenius\CQRS\Extractor\Extractor;
 use molibdenius\CQRS\Extractor\ExtractorFactory;
@@ -19,30 +18,22 @@ use Spiral\RoadRunner\EnvironmentInterface;
 use Spiral\RoadRunner\Http\PSR7WorkerInterface;
 use Spiral\RoadRunner\Jobs\Exception\JobsException;
 use Spiral\RoadRunner\Jobs\JobsInterface;
-use Spiral\RoadRunner\Jobs\QueueInterface;
 use Throwable;
-use WS\Utils\Collections\HashMap;
 
-final class HttpDispatcher implements Dispatcher
+final readonly class HttpDispatcher implements Dispatcher
 {
-
-    /** @var HashMap<QueueInterface> */
-    private HashMap $queues;
-
     public function __construct(
-        private readonly PSR7WorkerInterface $worker,
-        private readonly JobsInterface       $jobs,
-        private readonly Bus                 $bus,
-        private readonly Router $router,
+        private PSR7WorkerInterface $worker,
+        private JobsInterface       $jobs,
+        private Bus                 $bus,
+        private Router              $router,
     )
     {
     }
 
     private function init(): void
     {
-        $this->queues = new HashMap();
-        $this->queues->put(ActionType::Command, $this->jobs->connect(ActionType::Command->value));
-        $this->queues->put(ActionType::Query, $this->jobs->connect(ActionType::Query->value));
+        $this->router->setResource($this->bus->getMetadataMap()->getHttpHandlers());
     }
 
     public function canServe(EnvironmentInterface $env): bool
@@ -66,13 +57,14 @@ final class HttpDispatcher implements Dispatcher
                 if (!isset($routeParams['_action'])) {
                     throw new RuntimeException(sprintf("On route %s action does not exist.", $request->getUri()->getPath()));
                 }
+
                 /** @var class-string<Action> $actionClass */
                 $actionClass = $routeParams['_action'];
 
                 $action = $this->bus->resolveAction($actionClass);
                 $action->load($routeParams);
 
-                $payload = $this->getPayloadExtractor($request, $action->getActionPayloadTypes())->extract();
+                $payload = $this->getPayloadExtractor($request)->extract();
 
                 if (!empty($payload)) {
                     $action->load($payload);
@@ -104,7 +96,7 @@ final class HttpDispatcher implements Dispatcher
      */
     private function dispatchAsCommand(Action $action): void
     {
-        $queue = $this->queues->get($action->getActionType());
+        $queue = $this->jobs->connect($action->getActionType()->value);
 
         $task = $queue->create($action->getActionType()->value, serialize($action));
         $task = $queue->dispatch($task);
@@ -129,13 +121,12 @@ final class HttpDispatcher implements Dispatcher
         $this->worker->respond(new Response(
             200,
             ['Content-Type' => 'application/json'],
-            json_encode($result, JSON_THROW_ON_ERROR),
+            is_string($result) ? $result : json_encode($result, JSON_THROW_ON_ERROR),
         ));
     }
 
-    /** @param PayloadType[] $payloadTypes */
-    private function getPayloadExtractor(ServerRequestInterface $request, array $payloadTypes): Extractor
+    private function getPayloadExtractor(ServerRequestInterface $request): Extractor
     {
-        return ExtractorFactory::createExtractor('http.payload.extractor', $request, $payloadTypes);
+        return ExtractorFactory::createExtractor('http.payload.extractor', $request);
     }
 }

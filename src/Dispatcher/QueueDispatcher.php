@@ -4,14 +4,16 @@ namespace molibdenius\CQRS\Dispatcher;
 
 use molibdenius\CQRS\Bus\Bus;
 use molibdenius\CQRS\RoadRunnerMode;
+use RoadRunner\Logger\Logger;
 use Spiral\RoadRunner\EnvironmentInterface;
 use Spiral\RoadRunner\Jobs\ConsumerInterface;
 
-final class QueueDispatcher implements Dispatcher
+final readonly class QueueDispatcher implements Dispatcher
 {
     public function __construct(
-        private readonly ConsumerInterface $consumer,
-        private readonly Bus         $bus,
+        private ConsumerInterface $consumer,
+        private Bus               $bus,
+        private Logger            $logger,
     )
     {
     }
@@ -31,7 +33,7 @@ final class QueueDispatcher implements Dispatcher
                 // Complete task.
                 $task->ack();
             } catch (\Throwable $e) {
-                $task->nack($e);
+                $this->logger->error($e->getMessage());
             }
         }
     }

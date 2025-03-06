@@ -3,21 +3,24 @@
 namespace molibdenius\CQRS\Bus;
 
 use molibdenius\CQRS\Action\Action;
-use molibdenius\CQRS\Router\Router;
-use Symfony\Component\DependencyInjection\Definition;
-use WS\Utils\Collections\Collection;
+use molibdenius\CQRS\Handler\Handler;
+use molibdenius\CQRS\Metadata\MetadataMap;
 
 interface Bus
 {
     /**
-     * @param Collection<Definition> $definitions
+     * @param class-string<Handler>[] $handlers
      */
-    public function registerHandlers(Collection $definitions, Router $router): void;
+    public function registerHandlers(array $handlers): void;
 
     public function dispatch(Action $action): mixed;
 
     /**
      * @param class-string<Action> $actionClass
+     * @param mixed[] $payloads
      */
-    public function resolveAction(string $actionClass): Action;
+    public function resolveAction(string $actionClass, array $payloads = []): Action;
+
+    public function getMetadataMap(): MetadataMap;
+
 }

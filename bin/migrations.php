@@ -21,7 +21,17 @@ $projectDir = get_project_dir();
 
 $dotenv = new Dotenv();
 $dotenv->bootEnv($projectDir . '/.env');
-$dnsParser = new DsnParser(require __DIR__ . '/../config/pdo_map.php');
+$dnsParser = new DsnParser([
+    'db2' => 'ibm_db2',
+    'mssql' => 'pdo_sqlsrv',
+    'mysql' => 'pdo_mysql',
+    'mysql2' => 'pdo_mysql', // Amazon RDS, for some weird reason
+    'postgres' => 'pdo_pgsql',
+    'postgresql' => 'pdo_pgsql',
+    'pgsql' => 'pdo_pgsql',
+    'sqlite' => 'pdo_sqlite',
+    'sqlite3' => 'pdo_sqlite',
+]);
 
 $paths = [$projectDir . '/src/Entity'];
 

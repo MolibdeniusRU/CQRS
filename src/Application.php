@@ -6,28 +6,33 @@ require_once __DIR__ . '/../helpers/functions.php';
 
 use Exception;
 use molibdenius\CQRS\Bus\ActionBus;
+use molibdenius\CQRS\DependencyInjection\CQRSExtension;
 use molibdenius\CQRS\Dispatcher\Dispatcher;
 use molibdenius\CQRS\Dispatcher\HttpDispatcher;
 use molibdenius\CQRS\Dispatcher\QueueDispatcher;
 use molibdenius\CQRS\Handler\Handler;
-use molibdenius\CQRS\Router\Router;
+use ReflectionException;
+use RoadRunner\Logger\Logger;
 use Spiral\RoadRunner\Environment;
-use Spiral\RoadRunner\Http\PSR7WorkerInterface;
-use Spiral\RoadRunner\Jobs\ConsumerInterface;
-use Spiral\RoadRunner\Jobs\JobsInterface;
+use Symfony\Component\Cache\DependencyInjection\CachePoolClearerPass;
+use Symfony\Component\Cache\DependencyInjection\CachePoolPass;
+use Symfony\Component\Cache\DependencyInjection\CachePoolPrunerPass;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\Routing\DependencyInjection\RoutingResolverPass;
+use Symfony\Component\Serializer\DependencyInjection\SerializerPass;
 use Throwable;
-use WS\Utils\Collections\ArrayList;
+use WS\Utils\Collections\Collection;
+use WS\Utils\Collections\CollectionFactory;
 
 
 final class Application
 {
-    /** @var ArrayList<Dispatcher> */
-    private ArrayList $dispatchers;
+    /** @var Collection<Dispatcher> */
+    private Collection $dispatchers;
+
+    private Logger $logger;
 
     private bool $isInitialized = false;
 
@@ -36,65 +41,72 @@ final class Application
     public function __construct(?ApplicationMode $applicationMode = null)
     {
         if ($applicationMode === null) {
-            $applicationMode = ApplicationMode::Production;
+            $applicationMode = ApplicationMode::Development;
         }
 
         $this->applicationMode = $applicationMode;
 
-        $this->dispatchers = new ArrayList();
+        $this->dispatchers = CollectionFactory::empty();
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     */
     public function init(): void
     {
-        try {
-            $container = $this->initContainer();
+        $container = $this->initContainer();
 
-            /** @var Router $router */
-            $router = $container->get(Component::Router->value);
+        /** @var ActionBus $bus */
+        $bus = $container->get(ActionBus::class);
 
-            /** @var ActionBus $bus */
-            $bus = $container->get(Component::ActionBus->value);
-            $bus->registerHandlers(ArrayList::of($container->getDefinitions()), $router);
+        /** @var class-string<Handler>[] $handlers */
+        $handlers = array_keys($container->findTaggedServiceIds('cqrs.handler'));
 
-            /** @var PSR7WorkerInterface $PSR7Worker */
-            $PSR7Worker = $container->get(Component::PSR7Worker->value);
+        $bus->registerHandlers($handlers);
 
-            /** @var JobsInterface $jobs */
-            $jobs = $container->get(Component::Jobs->value);
+        $this->dispatchers->addAll([
+            $container->get(HttpDispatcher::class),
+            $container->get(QueueDispatcher::class),
+        ]);
 
-            /** @var ConsumerInterface $consumer */
-            $consumer = $container->get(Component::Consumer->value);
-
-            $this->dispatchers->addAll([
-                new HttpDispatcher($PSR7Worker, $jobs, $bus, $router),
-                new QueueDispatcher($consumer, $bus)
-            ]);
-
-        } catch (Throwable $exception) {
-            $data = $exception->getMessage();
-            if ($this->applicationMode !== ApplicationMode::Production) {
-                $data .= PHP_EOL . $exception->getTraceAsString();
-            }
-
-            file_put_contents('php://stderr', $data);
+        if (!($logger = $container->get(Logger::class)) instanceof Logger) {
+            throw new \RuntimeException('Logger service not found');
         }
+
+        $this->logger = $logger;
 
         $this->isInitialized = true;
     }
 
     public function run(): void
     {
-        if (!$this->isInitialized) {
-            $this->init();
-        }
+        try {
+            if (!$this->isInitialized) {
+                $this->init();
+            }
 
-        $this->dispatchers
-            ->stream()
-            ->map(function (Dispatcher $dispatcher) {
-                if ($dispatcher->canServe(Environment::fromGlobals())) {
-                    $dispatcher->serve();
-                }
-            });
+            $this->dispatchers
+                ->stream()
+                ->map(function (Dispatcher $dispatcher) {
+                    if ($dispatcher->canServe(Environment::fromGlobals())) {
+                        $dispatcher->serve();
+                    }
+                });
+
+        } catch (Throwable $exception) {
+            $data = $exception->getMessage();
+
+            if ($this->applicationMode !== ApplicationMode::Development) {
+                $data .= PHP_EOL . $exception->getTraceAsString();
+            }
+
+            if ($this->isInitialized) {
+                $this->logger->error($data);
+            } else {
+                file_put_contents('php://stderr', $data);
+            }
+        }
     }
 
     /**
@@ -102,18 +114,17 @@ final class Application
      */
     private function initContainer(): ContainerBuilder
     {
+        $extension = new CQRSExtension();
         $container = new ContainerBuilder();
 
-        $fileLocator = new FileLocator(__DIR__);
+        $container->registerExtension($extension);
+        $container
+            ->loadFromExtension($extension->getAlias())
+            ->addCompilerPass(new RoutingResolverPass())
 
-        $phpLoader = new PhpFileLoader($container, $fileLocator);
-        $phpLoader->load(__DIR__ . '/../config/components.php');
+        $yamlLoader = new YamlFileLoader($container, new FileLocator(get_project_dir()));
+        $yamlLoader->load('./config/services.yaml');
 
-        $yamlLoader = new YamlFileLoader($container, $fileLocator);
-        $yamlLoader->load(get_project_dir() . '/config/services.yaml');
-
-        $container->registerForAutoconfiguration(Handler::class)->addTag('cqrs.handler');
-        $container->addCompilerPass(new RoutingResolverPass());
         $container->compile();
 
         return $container;

@@ -5,21 +5,19 @@ namespace molibdenius\CQRS\Handler\Attribute;
 use Attribute;
 use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionType;
-use molibdenius\CQRS\Action\Enum\PayloadType;
+use molibdenius\CQRS\Metadata\HandlerMetadata;
 
 #[Attribute]
-class AsCommandHandler extends ActionHandler
+class AsCommandHandler extends HandlerMetadata
 {
     /**
-     * @param class-string<Action> $commandClass
-     * @param PayloadType[] $payloadTypes
+     * @param class-string<Action> $command
      */
-    public function __construct(string $commandClass, array $payloadTypes)
+    public function __construct(string $command)
     {
         parent::__construct(
-            actionClass: $commandClass,
-            payloadTypes: $payloadTypes,
-            type: ActionType::Command
+            actionClass: $command,
+            type: ActionType::Command,
         );
     }
 }

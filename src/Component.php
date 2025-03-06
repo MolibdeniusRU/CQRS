@@ -30,4 +30,10 @@ enum Component: string
 
     case EmConnection = "em_connection";
 
+    case RRLogger = "rr_logger";
+
+    case HttpDispatcher = "http_dispatcher";
+
+    case QueueDispatcher = "queue_dispatcher";
+
 }

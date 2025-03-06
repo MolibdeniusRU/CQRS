@@ -32,20 +32,6 @@ interface Action
     public function setActionType(ActionType $actionType): void;
 
     /**
-     * Получить тип передачи полезной нагрузки.
-     *
-     * @return PayloadType[]
-     */
-    public function getActionPayloadTypes(): array;
-
-    /**
-     * Задать тип полезной нагрузки.
-     *
-     * @param PayloadType[] $actionPayloadTypes
-     */
-    public function setActionPayloadTypes(array $actionPayloadTypes): void;
-
-    /**
      * Метод для загрузки атрибутов интеграции.
      *
      * @param mixed[] $attributes

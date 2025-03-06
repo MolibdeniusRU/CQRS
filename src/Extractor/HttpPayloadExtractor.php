@@ -3,18 +3,12 @@
 namespace molibdenius\CQRS\Extractor;
 
 use JsonException;
-use molibdenius\CQRS\Action\Enum\PayloadType;
 use Psr\Http\Message\ServerRequestInterface;
 
 final readonly class HttpPayloadExtractor implements Extractor
 {
-    /**
-     * @param ServerRequestInterface $request
-     * @param PayloadType[] $payloadTypes
-     */
     public function __construct(
         private ServerRequestInterface $request,
-        private array                  $payloadTypes,
     )
     {
     }
@@ -24,23 +18,33 @@ final readonly class HttpPayloadExtractor implements Extractor
      */
     public function extract(): array
     {
-        $payloads = array_map(
-            function (PayloadType $payloadType) {
-                return match ($payloadType) {
-                    PayloadType::Query => $this->request->getQueryParams(),
-                    PayloadType::Body => $this->request->getParsedBody() ??
-                        json_decode(
-                            json: $this->request->getBody()->getContents(),
-                            associative: true,
-                            depth: 512,
-                            flags: JSON_THROW_ON_ERROR
-                        ),
-                    default => null,
-                };
-            },
-            $this->payloadTypes
+        return array_merge(
+            $this->request->getQueryParams(),
+            $this->getBodyParams()
         );
+    }
 
-        return array_merge_recursive(...$payloads);
+    /**
+     * @return mixed[]
+     * @throws JsonException
+     */
+    private function getBodyParams(): array
+    {
+        $body = $this->request->getParsedBody() ?? $this->request->getBody()->getContents();
+
+        if (is_string($body)) {
+            if ($body === '') {
+                return [];
+            }
+
+            $body = json_decode(
+                json: $body,
+                associative: true,
+                depth: 512,
+                flags: JSON_THROW_ON_ERROR
+            );
+        }
+
+        return $body;
     }
 }

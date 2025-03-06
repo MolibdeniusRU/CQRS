@@ -5,7 +5,6 @@ namespace molibdenius\CQRS;
 
 enum RoadRunnerMode: string
 {
-    use EnumTrait;
     case Http = 'http';
     case Jobs = 'jobs';
     case Temporal = 'temporal';

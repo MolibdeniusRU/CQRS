@@ -3,106 +3,95 @@
 namespace molibdenius\CQRS\Bus;
 
 use molibdenius\CQRS\Action\Action;
-use molibdenius\CQRS\Action\Enum\ActionState;
-use molibdenius\CQRS\Handler\Attribute\ActionHandler;
+use molibdenius\CQRS\Action\ActionFactory;
+use molibdenius\CQRS\Handler\Attribute\AsCommandHandler;
+use molibdenius\CQRS\Handler\Attribute\AsQueryHandler;
+use molibdenius\CQRS\Handler\Attribute\AsSyncHandler;
 use molibdenius\CQRS\Handler\Handler;
-use molibdenius\CQRS\Router\Router;
+use molibdenius\CQRS\Metadata\MetadataMap;
+use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
-use Symfony\Component\DependencyInjection\Definition;
-use Throwable;
-use WS\Utils\Collections\ArrayList;
-use WS\Utils\Collections\Collection;
+use WS\Utils\Collections\CollectionFactory;
 use WS\Utils\Collections\Functions\Reorganizers;
-use WS\Utils\Collections\HashMap;
-use WS\Utils\Collections\Map;
 
 final readonly class ActionBus implements Bus
 {
-    private Map $handlersMap;
-
-    private Map $metadataMap;
-
     public function __construct(
         #[AutowireLocator('cqrs.handler')]
         private ContainerInterface $handlers,
+        private MetadataMap $metadataMap,
     )
     {
-        $this->handlersMap = new HashMap();
-        $this->metadataMap = new HashMap();
     }
 
 
     /**
-     * @param Collection<Definition> $definitions
-     * @param Router $router
+     * @param class-string<Handler>[] $handlers
      * @throws ReflectionException
      */
-    public function registerHandlers(Collection $definitions, Router $router): void
+    public function registerHandlers(array $handlers): void
     {
-        $handlers = [];
-
-        $definitions->stream()
-            ->reorganize(Reorganizers::collapse())
-            ->map(
-                function (Definition $definition) use (&$handlers) {
-                    if ($definition->hasTag('cqrs.handler')) {
-                        $handlers[] = $definition->getClass();
-                    }
-                }
-            );
-
         foreach ($handlers as $handlerClass) {
-            /** @var class-string<Handler<Action>> $handlerClass */
-            $attributes = ArrayList::of((new ReflectionClass($handlerClass))->getAttributes());
+            $handlerReflection = new ReflectionClass($handlerClass);
 
-            $attributes->stream()
+            CollectionFactory::from($handlerReflection->getAttributes())->stream()
                 ->reorganize(Reorganizers::collapse())
                 ->map(
                     function (ReflectionAttribute $reflectionAttribute) use ($handlerClass) {
                         $attribute = $reflectionAttribute->newInstance();
-                        if ($attribute instanceof ActionHandler) {
-                            $this->handlersMap->put($attribute->actionClass, $handlerClass);
-                            $this->metadataMap->put($attribute->actionClass, $attribute);
+
+                        if ($attribute instanceof AsCommandHandler || $attribute instanceof AsQueryHandler) {
+                            $this->metadataMap
+                                ->setMetadata($attribute->actionClass, $handlerClass, $attribute)
+                                ->addHttpHandler($handlerClass);
+                        }
+
+                        if ($attribute instanceof AsSyncHandler) {
+                            $this->metadataMap
+                                ->setMetadata($attribute->actionClass, $handlerClass, $attribute)
+                                ->addSyncAction($attribute->actionClass);
                         }
                     }
                 );
         }
-
-        $router->setResource($handlers);
-    }
-
-    public function dispatch(Action $action): mixed
-    {
-        try {
-            $handler = $this->handlers->get($this->handlersMap->get($action::class));
-            if (!$handler instanceof Handler) {
-                throw new RuntimeException(sprintf("Class %s does not implement " . Handler::class, $handler::class));
-            }
-
-            $result = $handler->handle($action);
-        } catch (Throwable $exception) {
-            file_put_contents('php://stderr', $exception->getMessage() . PHP_EOL . $exception->getTraceAsString());
-            $result = null;
-        }
-
-        return $result;
     }
 
     /**
      * @param class-string<Action> $actionClass
+     * @param mixed[] $payloads
      */
-    public function resolveAction(string $actionClass): Action
+    public function resolveAction(string $actionClass, array $payloads = []): Action
     {
-        $action = new $actionClass();
-        $action->setActionType($this->metadataMap->get($actionClass)->type);
-        $action->setActionState(ActionState::New);
-        $action->setActionPayloadTypes($this->metadataMap->get($actionClass)->payloadTypes);
-
-        return $action;
+        return ActionFactory::create(
+            $actionClass,
+            $this->metadataMap->getMetadata($actionClass)->type,
+            $payloads
+        );
     }
+
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
+    public function dispatch(Action $action): mixed
+    {
+        $handler = $this->handlers->get($this->metadataMap->getHandler($action::class));
+        if (!$handler instanceof Handler) {
+            throw new RuntimeException(sprintf("Class %s does not implement " . Handler::class, $handler::class));
+        }
+
+        return $handler->handle($action);
+    }
+
+    public function getMetadataMap(): MetadataMap
+    {
+        return $this->metadataMap;
+    }
+
 }

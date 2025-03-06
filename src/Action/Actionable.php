@@ -16,9 +16,6 @@ trait Actionable
 
     private ActionType $actionType;
 
-    /** @var PayloadType[] */
-    private array $actionPayloadTypes;
-
     public function getActionState(): ActionState
     {
         return $this->actionState;
@@ -37,19 +34,6 @@ trait Actionable
     public function setActionType(ActionType $actionType): void
     {
         $this->actionType = $actionType;
-    }
-
-    public function getActionPayloadTypes(): array
-    {
-        return $this->actionPayloadTypes;
-    }
-
-    /**
-     * @param PayloadType[] $actionPayloadTypes
-     */
-    public function setActionPayloadTypes(array $actionPayloadTypes): void
-    {
-        $this->actionPayloadTypes = $actionPayloadTypes;
     }
 
     public function load(array $attributes): void
@@ -71,6 +55,10 @@ trait Actionable
         }
     }
 
+    /**
+     * @param ReflectionClass<Action> $reflection
+     * @return array<string, string> | array<string, array<string, string>>
+     */
     private function getObjectProperties(ReflectionClass $reflection): array
     {
         $properties = $reflection->getProperties(ReflectionProperty::IS_PUBLIC);
