@@ -121,6 +121,10 @@ final class Application
         $container
             ->loadFromExtension($extension->getAlias())
             ->addCompilerPass(new RoutingResolverPass())
+            ->addCompilerPass(new SerializerPass())
+            ->addCompilerPass(new CachePoolPass())
+            ->addCompilerPass(new CachePoolClearerPass())
+            ->addCompilerPass(new CachePoolPrunerPass());
 
         $yamlLoader = new YamlFileLoader($container, new FileLocator(get_project_dir()));
         $yamlLoader->load('./config/services.yaml');

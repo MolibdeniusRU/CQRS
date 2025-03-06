@@ -7,4 +7,6 @@ enum ActionType: string
     case Command = 'command';
 
     case Query = 'query';
+
+    case Sync = 'sync';
 }

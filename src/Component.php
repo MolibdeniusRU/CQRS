@@ -36,4 +36,14 @@ enum Component: string
 
     case QueueDispatcher = "queue_dispatcher";
 
+    case Redis = "redis";
+
+    case Serializer = "serializer";
+
+    case PropertyAccessor = "property_accessor";
+
+    case PropertyInfo = "property_info";
+
+    case Cache = 'cache';
+
 }

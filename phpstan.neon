@@ -1,6 +1,3 @@
-includes:
-    - phpstan-actionable-trait.neon
-
 parameters:
 	level: 7
 	paths:
