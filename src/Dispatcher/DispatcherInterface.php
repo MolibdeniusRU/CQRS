@@ -4,7 +4,7 @@ namespace molibdenius\CQRS\Dispatcher;
 
 use Spiral\RoadRunner\EnvironmentInterface;
 
-interface Dispatcher
+interface DispatcherInterface
 {
     /**
      * Проверяет режим RoadRunner`а на соответствие типа диспетчера.

@@ -36,4 +36,15 @@ enum Component: string
 
     case QueueDispatcher = "queue_dispatcher";
 
+    case Unknown = 'unknown';
+
+    public static function getDispatcher(): self
+    {
+        return match (RoadRunnerMode::fromEnv()) {
+            RoadRunnerMode::Http => self::HttpDispatcher,
+            RoadRunnerMode::Jobs => self::QueueDispatcher,
+            default => self::Unknown
+        };
+    }
+
 }

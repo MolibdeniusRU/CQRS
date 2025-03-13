@@ -1,6 +1,6 @@
 <?php
 
-namespace molibdenius\CQRS\Metadata;
+namespace molibdenius\CQRS\Handler\Attribute;
 
 use Attribute;
 use molibdenius\CQRS\Action\Action;

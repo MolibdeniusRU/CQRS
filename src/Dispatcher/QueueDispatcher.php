@@ -2,18 +2,18 @@
 
 namespace molibdenius\CQRS\Dispatcher;
 
-use molibdenius\CQRS\Bus\Bus;
+use molibdenius\CQRS\Bus\ActionBusInterface;
 use molibdenius\CQRS\RoadRunnerMode;
 use RoadRunner\Logger\Logger;
 use Spiral\RoadRunner\EnvironmentInterface;
 use Spiral\RoadRunner\Jobs\ConsumerInterface;
 
-final readonly class QueueDispatcher implements Dispatcher
+final readonly class QueueDispatcher implements DispatcherInterface
 {
     public function __construct(
-        private ConsumerInterface $consumer,
-        private Bus               $bus,
-        private Logger            $logger,
+        private ConsumerInterface  $consumer,
+        private ActionBusInterface $bus,
+        private Logger             $logger,
     )
     {
     }

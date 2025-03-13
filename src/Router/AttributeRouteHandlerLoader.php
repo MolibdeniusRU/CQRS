@@ -2,8 +2,8 @@
 
 namespace molibdenius\CQRS\Router;
 
+use molibdenius\CQRS\Handler\Attribute\HandlerMetadata;
 use molibdenius\CQRS\Handler\Handler;
-use molibdenius\CQRS\Metadata\HandlerMetadata;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionMethod;

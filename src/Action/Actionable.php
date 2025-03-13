@@ -5,7 +5,6 @@ namespace molibdenius\CQRS\Action;
 
 use molibdenius\CQRS\Action\Enum\ActionState;
 use molibdenius\CQRS\Action\Enum\ActionType;
-use molibdenius\CQRS\Action\Enum\PayloadType;
 use ReflectionClass;
 use ReflectionProperty;
 

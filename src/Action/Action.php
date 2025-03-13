@@ -4,7 +4,6 @@ namespace molibdenius\CQRS\Action;
 
 use molibdenius\CQRS\Action\Enum\ActionState;
 use molibdenius\CQRS\Action\Enum\ActionType;
-use molibdenius\CQRS\Action\Enum\PayloadType;
 
 /**
  * Интерфейс, содержащий методы для автоматического управления действиями, для интеграции пользовательских действий.

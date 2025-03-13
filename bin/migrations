@@ -1,6 +1,0 @@
-#!/usr/bin/env php
-<?php
-
-namespace Migrations;
-
-require __DIR__ . '/migrations.php';

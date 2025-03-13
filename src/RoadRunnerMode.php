@@ -3,6 +3,8 @@
 namespace molibdenius\CQRS;
 
 
+use Spiral\RoadRunner\Environment;
+
 enum RoadRunnerMode: string
 {
     case Http = 'http';
@@ -12,5 +14,10 @@ enum RoadRunnerMode: string
     case Tcp = 'tcp';
     case Centrifuge = 'centrifuge';
     case Unknown = 'unknown';
+
+    public static function fromEnv(): self
+    {
+        return self::tryFrom(Environment::fromGlobals()->getMode()) ?? self::Unknown;
+    }
 }
 

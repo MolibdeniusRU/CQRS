@@ -1,15 +1,15 @@
 <?php
 
-namespace molibdenius\CQRS\Metadata;
+namespace molibdenius\CQRS\Handler;
 
 use molibdenius\CQRS\Action\Action;
-use molibdenius\CQRS\Handler\Handler;
+use molibdenius\CQRS\Handler\Attribute\HandlerMetadata;
 use WS\Utils\Collections\Collection;
 use WS\Utils\Collections\CollectionFactory;
 use WS\Utils\Collections\Map;
 use WS\Utils\Collections\MapFactory;
 
-class MetadataMap
+class HandlerMetadataMap
 {
     private Map $map;
 

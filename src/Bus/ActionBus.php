@@ -6,9 +6,8 @@ use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\ActionFactory;
 use molibdenius\CQRS\Handler\Attribute\AsCommandHandler;
 use molibdenius\CQRS\Handler\Attribute\AsQueryHandler;
-use molibdenius\CQRS\Handler\Attribute\AsSyncHandler;
 use molibdenius\CQRS\Handler\Handler;
-use molibdenius\CQRS\Metadata\MetadataMap;
+use molibdenius\CQRS\Handler\HandlerMetadataMap;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -16,16 +15,14 @@ use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
 use RuntimeException;
-use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
 use WS\Utils\Collections\CollectionFactory;
 use WS\Utils\Collections\Functions\Reorganizers;
 
-final readonly class ActionBus implements Bus
+final readonly class ActionBus implements ActionBusInterface
 {
     public function __construct(
-        #[AutowireLocator('cqrs.handler')]
         private ContainerInterface $handlers,
-        private MetadataMap $metadataMap,
+        private HandlerMetadataMap $metadataMap,
     )
     {
     }
@@ -50,12 +47,6 @@ final readonly class ActionBus implements Bus
                             $this->metadataMap
                                 ->setMetadata($attribute->actionClass, $handlerClass, $attribute)
                                 ->addHttpHandler($handlerClass);
-                        }
-
-                        if ($attribute instanceof AsSyncHandler) {
-                            $this->metadataMap
-                                ->setMetadata($attribute->actionClass, $handlerClass, $attribute)
-                                ->addSyncAction($attribute->actionClass);
                         }
                     }
                 );
@@ -89,7 +80,7 @@ final readonly class ActionBus implements Bus
         return $handler->handle($action);
     }
 
-    public function getMetadataMap(): MetadataMap
+    public function getMetadataMap(): HandlerMetadataMap
     {
         return $this->metadataMap;
     }

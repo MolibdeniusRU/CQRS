@@ -4,9 +4,9 @@ namespace molibdenius\CQRS\Bus;
 
 use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Handler\Handler;
-use molibdenius\CQRS\Metadata\MetadataMap;
+use molibdenius\CQRS\Handler\HandlerMetadataMap;
 
-interface Bus
+interface ActionBusInterface
 {
     /**
      * @param class-string<Handler>[] $handlers
@@ -21,6 +21,6 @@ interface Bus
      */
     public function resolveAction(string $actionClass, array $payloads = []): Action;
 
-    public function getMetadataMap(): MetadataMap;
+    public function getMetadataMap(): HandlerMetadataMap;
 
 }

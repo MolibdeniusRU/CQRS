@@ -6,7 +6,7 @@ use Exception;
 use JsonException;
 use molibdenius\CQRS\Action\Action;
 use molibdenius\CQRS\Action\Enum\ActionType;
-use molibdenius\CQRS\Bus\Bus;
+use molibdenius\CQRS\Bus\ActionBusInterface;
 use molibdenius\CQRS\Extractor\Extractor;
 use molibdenius\CQRS\Extractor\ExtractorFactory;
 use molibdenius\CQRS\RoadRunnerMode;
@@ -20,12 +20,12 @@ use Spiral\RoadRunner\Jobs\Exception\JobsException;
 use Spiral\RoadRunner\Jobs\JobsInterface;
 use Throwable;
 
-final readonly class HttpDispatcher implements Dispatcher
+final readonly class HttpDispatcher implements DispatcherInterface
 {
     public function __construct(
         private PSR7WorkerInterface $worker,
         private JobsInterface       $jobs,
-        private Bus                 $bus,
+        private ActionBusInterface $actionBus,
         private Router              $router,
     )
     {
@@ -33,7 +33,7 @@ final readonly class HttpDispatcher implements Dispatcher
 
     private function init(): void
     {
-        $this->router->setResource($this->bus->getMetadataMap()->getHttpHandlers());
+        $this->router->setResource($this->actionBus->getMetadataMap()->getHttpHandlers());
     }
 
     public function canServe(EnvironmentInterface $env): bool
@@ -61,7 +61,7 @@ final readonly class HttpDispatcher implements Dispatcher
                 /** @var class-string<Action> $actionClass */
                 $actionClass = $routeParams['_action'];
 
-                $action = $this->bus->resolveAction($actionClass);
+                $action = $this->actionBus->resolveAction($actionClass);
                 $action->load($routeParams);
 
                 $payload = $this->getPayloadExtractor($request)->extract();
@@ -116,7 +116,7 @@ final readonly class HttpDispatcher implements Dispatcher
      */
     private function dispatchAsQuery(Action $action): void
     {
-        $result = $this->bus->dispatch($action);
+        $result = $this->actionBus->dispatch($action);
 
         $this->worker->respond(new Response(
             200,
