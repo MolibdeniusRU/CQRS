@@ -2,93 +2,31 @@
 
 namespace molibdenius\CQRS;
 
-use Exception;
-use molibdenius\CQRS\Dispatcher\DispatcherInterface;
-use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
-use RoadRunner\Logger\Logger;
-use Throwable;
 
 
 abstract class CQRSKernel implements CQRSKernelInterface
 {
-    private Logger $logger;
+    use CQRSKernelTrait;
 
-    private bool $isInitialized = false;
-
-    private ApplicationMode $applicationMode;
+    private bool $booted = false;
 
     private ContainerInterface $container;
 
-    public function __construct(?ApplicationMode $applicationMode = null)
+    public function __construct(private string $environment, private bool $debug = false)
     {
-        if ($applicationMode === null) {
-            $applicationMode = ApplicationMode::Development;
-        }
-
-        $this->applicationMode = $applicationMode;
-    }
-
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     * @throws Exception
-     */
-    protected function init(): void
-    {
-        $this->container = $this->initContainer();
-
-        if (!($logger = $this->container->get(Logger::class)) instanceof Logger) {
-            throw new \RuntimeException('Logger service not found');
-        }
-
-        $this->logger = $logger;
-
-        $this->isInitialized = true;
-    }
-
-    public function serve(): void
-    {
-        try {
-            if (!$this->isInitialized) {
-                $this->init();
-            }
-
-            $dispatcher = $this->getDispatcher();
-
-            $dispatcher->serve();
-
-        } catch (Throwable $exception) {
-            $data = $exception->getMessage();
-
-            if ($this->applicationMode !== ApplicationMode::Development) {
-                $data .= PHP_EOL . $exception->getTraceAsString();
-            }
-
-            if ($this->isInitialized) {
-                $this->logger->error($data);
-            } else {
-                file_put_contents('php://stderr', $data);
-            }
+        if (!$this->environment) {
+            throw new \InvalidArgumentException(\sprintf('Invalid environment provided to "%s": the environment cannot be empty.', get_debug_type($this)));
         }
     }
 
-    abstract protected function initContainer(): ContainerInterface;
-
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    private function getDispatcher(): DispatcherInterface
+    protected function boot(): void
     {
-        if (($dispatcherName = Component::getDispatcher()) === Component::Unknown) {
-            throw new \RuntimeException('Unknown dispatcher');
-        }
+        $this->container = $this->preBoot();
 
-        return $this->container->get($dispatcherName->value);
+        $this->booted = true;
     }
 
-
+    abstract protected function preBoot(): ContainerInterface;
 }
 
