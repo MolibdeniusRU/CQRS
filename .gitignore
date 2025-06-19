@@ -1,6 +1,8 @@
-./vendor
-./public
-./.jetclient
-./.idea
+/vendor
+/.jetclient
+/.idea
 .pid
 /composer.lock
+/.context/
+/.continue/
+/tests/coverage/

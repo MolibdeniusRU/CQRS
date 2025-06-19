@@ -1,21 +1,13 @@
-<?php
+<?php declare(strict_types=1);
 
-namespace molibdenius\CQRS\Dispatcher;
-
-use Spiral\RoadRunner\EnvironmentInterface;
+namespace Molibdenius\CQRS\Dispatcher;
 
 interface DispatcherInterface
 {
     /**
-     * Проверяет режим RoadRunner`а на соответствие типа диспетчера.
+     * Start serving the dispatcher.
      *
-     * @param EnvironmentInterface $env
-     * @return bool
-     */
-    public function canServe(EnvironmentInterface $env): bool;
-
-    /**
-     * Запускает диспетчер в режим ожидания запросов.
+     * This method will block until the dispatcher is stopped.
      */
     public function serve(): void;
 }

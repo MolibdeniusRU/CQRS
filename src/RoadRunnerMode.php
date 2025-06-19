@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 
-namespace molibdenius\CQRS;
+namespace Molibdenius\CQRS;
 
 
 use Spiral\RoadRunner\Environment;
@@ -15,9 +15,9 @@ enum RoadRunnerMode: string
     case Centrifuge = 'centrifuge';
     case Unknown = 'unknown';
 
-    public static function fromEnv(): self
+    public static function fromEnv(Environment $environment): self
     {
-        return self::tryFrom(Environment::fromGlobals()->getMode()) ?? self::Unknown;
+        return self::tryFrom($environment->getMode()) ?? self::Unknown;
     }
 }
 

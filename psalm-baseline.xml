@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="6.11.0@4ed53b7ccebc09ef60ec4c9e464bf8a01bfd35b0">
+    <file src="src/ActionBus/ActionBus.php">
+        <UnusedClass>
+            <code><![CDATA[ActionBus]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/Dispatcher/DispatcherInterface.php">
+        <PossiblyUnusedMethod>
+            <code><![CDATA[serve]]></code>
+        </PossiblyUnusedMethod>
+    </file>
+    <file src="src/Dispatcher/HttpDispatcher.php">
+        <UnusedClass>
+            <code><![CDATA[HttpDispatcher]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/Dispatcher/QueueDispatcher.php">
+        <UnusedClass>
+            <code><![CDATA[QueueDispatcher]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/Event/Attribute/WithResponseTrait.php">
+        <PossiblyUnusedMethod>
+            <code><![CDATA[setResponse]]></code>
+            <code><![CDATA[setResponse]]></code>
+        </PossiblyUnusedMethod>
+    </file>
+    <file src="src/Event/Events.php">
+        <PossiblyUnusedMethod>
+            <code><![CDATA[getAliases]]></code>
+        </PossiblyUnusedMethod>
+    </file>
+    <file src="src/EventLoop/HttpEventLoop.php">
+        <UnusedClass>
+            <code><![CDATA[HttpEventLoop]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/EventLoop/QueueEventLoop.php">
+        <UnusedClass>
+            <code><![CDATA[QueueEventLoop]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/EventSubscriber/ActionCreator.php">
+        <UnusedClass>
+            <code><![CDATA[ActionCreator]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/EventSubscriber/ActionExecutor.php">
+        <UnusedClass>
+            <code><![CDATA[ActionExecutor]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/EventSubscriber/EventLogger.php">
+        <UnusedClass>
+            <code><![CDATA[EventLogger]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/EventSubscriber/ResponseWriter.php">
+        <UnusedClass>
+            <code><![CDATA[ResponseWriter]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/EventSubscriber/TaskCreator.php">
+        <UnusedClass>
+            <code><![CDATA[TaskCreator]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/EventSubscriber/TaskRetryer.php">
+        <UnusedClass>
+            <code><![CDATA[TaskRetryer]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/Registry/ActionConfig.php">
+        <PossiblyUnusedMethod>
+            <code><![CDATA[__construct]]></code>
+        </PossiblyUnusedMethod>
+    </file>
+    <file src="src/Registry/ActionRegistry.php">
+        <UnusedClass>
+            <code><![CDATA[ActionRegistry]]></code>
+        </UnusedClass>
+    </file>
+    <file src="src/Registry/ActionRetry.php">
+        <PossiblyUnusedMethod>
+            <code><![CDATA[__construct]]></code>
+        </PossiblyUnusedMethod>
+    </file>
+    <file src="src/Registry/HandlerConfig.php">
+        <UnusedClass>
+            <code><![CDATA[HandlerConfig]]></code>
+        </UnusedClass>
+    </file>
+</files>

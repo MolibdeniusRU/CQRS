@@ -1,39 +1,33 @@
 <?php
 
-namespace molibdenius\CQRS\Dispatcher;
+declare(strict_types=1);
 
-use molibdenius\CQRS\Bus\ActionBusInterface;
-use molibdenius\CQRS\RoadRunnerMode;
-use RoadRunner\Logger\Logger;
-use Spiral\RoadRunner\EnvironmentInterface;
+namespace Molibdenius\CQRS\Dispatcher;
+
+use Molibdenius\CQRS\EventLoop\EventLoopInterface;
 use Spiral\RoadRunner\Jobs\ConsumerInterface;
+use Spiral\RoadRunner\Jobs\Task\ReceivedTaskInterface;
+use Throwable;
 
 final readonly class QueueDispatcher implements DispatcherInterface
 {
+    /**
+     * @param EventLoopInterface<ReceivedTaskInterface, void> $eventLoop
+     */
     public function __construct(
         private ConsumerInterface  $consumer,
-        private ActionBusInterface $bus,
-        private Logger             $logger,
+        private EventLoopInterface $eventLoop,
     )
     {
-    }
-
-    public function canServe(EnvironmentInterface $env): bool
-    {
-        return $env->getMode() === RoadRunnerMode::Jobs->value;
     }
 
     public function serve(): void
     {
         while ($task = $this->consumer->waitTask()) {
             try {
-                $action = unserialize($task->getPayload(), ['allowed_classes' => true]);
-
-                $this->bus->dispatch($action);
-                // Complete task.
-                $task->ack();
-            } catch (\Throwable $e) {
-                $this->logger->error($e->getMessage());
+                $this->eventLoop->run($task);
+            } catch (Throwable $e) {
+                $task->nack($e);
             }
         }
     }
